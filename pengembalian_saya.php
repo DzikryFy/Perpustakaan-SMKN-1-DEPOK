@@ -75,10 +75,10 @@ $riwayat = $conn->query("
 ");
 
 $cover_map = [
-    'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-umum'],
-    'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-motivasi'],
-    'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-sastra'],
-    'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-religi'],
+    'umum'     => ['emoji'=>'📖','class'=>'c-umum'],
+    'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi'],
+    'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra'],
+    'religi'   => ['emoji'=>'🕌','class'=>'c-religi'],
 ];
 ?>
 <!DOCTYPE html>
@@ -167,7 +167,7 @@ $cover_map = [
 
                         <?php while ($a = $aktif->fetch_assoc()):
                             $katK = strtolower($a['kategori'] ?? '');
-                            $cm   = $cover_map[$katK] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-default'];
+                            $cm   = $cover_map[$katK] ?? ['emoji'=>'📚','class'=>'c-default'];
                             $isPreSelected = ($pre_pinjam == $a['id_pinjam']);
                         ?>
                         <div class="aktif-card <?= $isPreSelected?'selected':'' ?>"
@@ -189,7 +189,7 @@ $cover_map = [
                                 <?php
                                 $pd = $conn->query("SELECT kategori FROM buku WHERE id_buku={$pre_data['id_buku']}")->fetch_assoc();
                                 $pkatK = strtolower($pd['kategori']??'');
-                                $pcm   = $cover_map[$pkatK] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-default'];
+                                $pcm   = $cover_map[$pkatK] ?? ['emoji'=>'📚','class'=>'c-default'];
                                 ?>
                                 <div class="buku-cover <?= $pcm['class'] ?> aktif-cover"><?= $pcm['emoji'] ?></div>
                                 <div>

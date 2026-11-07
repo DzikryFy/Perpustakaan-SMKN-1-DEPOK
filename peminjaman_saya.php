@@ -126,10 +126,10 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
     <!-- List -->
     <?php
     $cover_map = [
-        'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-umum'],
-        'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-motivasi'],
-        'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-sastra'],
-        'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-religi'],
+        'umum'     => ['emoji'=>'📖','class'=>'c-umum'],
+        'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi'],
+        'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra'],
+        'religi'   => ['emoji'=>'🕌','class'=>'c-religi'],
     ];
     if ($list && $list->num_rows > 0):
     ?>
@@ -141,7 +141,7 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
             // Ambil kategori dari tabel buku
             $bukuRow = $conn->query("SELECT kategori FROM buku WHERE id_buku={$r['id_buku']}")->fetch_assoc();
             $katKey  = strtolower($bukuRow['kategori'] ?? '');
-            $cm      = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','class'=>'c-default'];
+            $cm      = $cover_map[$katKey] ?? ['emoji'=>'📚','class'=>'c-default'];
         ?>
         <div class="pinjam-card">
             <div class="buku-cover <?= $cm['class'] ?> pinjam-cover"><?= $cm['emoji'] ?></div>

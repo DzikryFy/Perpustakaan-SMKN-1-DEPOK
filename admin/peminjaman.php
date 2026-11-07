@@ -101,11 +101,11 @@ body{display:flex;min-height:100vh;}
 
 <?php if($tab==='request'): ?>
 <?php if($cnt_req>0): while($r=$requests->fetch_assoc()):
-    $kk=$r['kategori']?strtolower($r['kategori']):''; $cmap=['umum'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-umum'],'motivasi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-motivasi'],'sastra'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-sastra'],'religi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-religi']];
-    $cm=$cmap[$kk]??['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-default'];
+    $kk=$r['kategori']?strtolower($r['kategori']):''; $cmap=['umum'=>['e'=>'📖','c'=>'c-umum'],'motivasi'=>['e'=>'🚀','c'=>'c-motivasi'],'sastra'=>['e'=>'✍️','c'=>'c-sastra'],'religi'=>['e'=>'🕌','c'=>'c-religi']];
+    $cm=$cmap[$kk]??['e'=>'📚','c'=>'c-default'];
 ?>
 <div class="req-row">
-    <div class="mini-cover <?= $cm['c'] ?>" data-book-title="<?= htmlspecialchars($r['nama_buku'] ?? '') ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
+    <div class="mini-cover <?= $cm['c'] ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
     <div style="flex:1;min-width:0;">
         <div style="font-weight:600;color:#fff;font-size:.9rem;"><?= htmlspecialchars($r['nama_buku']) ?></div>
         <div style="font-size:.73rem;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">
@@ -126,14 +126,14 @@ body{display:flex;min-height:100vh;}
 
 <?php elseif($tab==='aktif'): ?>
 <?php if($cnt_aktif>0): while($r=$aktif->fetch_assoc()):
-    $kk=strtolower($r['kategori']??''); $cmap=['umum'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-umum'],'motivasi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-motivasi'],'sastra'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-sastra'],'religi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-religi']];
-    $cm=$cmap[$kk]??['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-default'];
+    $kk=strtolower($r['kategori']??''); $cmap=['umum'=>['e'=>'📖','c'=>'c-umum'],'motivasi'=>['e'=>'🚀','c'=>'c-motivasi'],'sastra'=>['e'=>'✍️','c'=>'c-sastra'],'religi'=>['e'=>'🕌','c'=>'c-religi']];
+    $cm=$cmap[$kk]??['e'=>'📚','c'=>'c-default'];
     $tl = strtotime(date('Y-m-d'))>strtotime($r['batas_kembali']);
     $sisa = ceil((strtotime($r['batas_kembali'])-strtotime(date('Y-m-d')))/86400);
     $denda_pred = $tl ? abs($sisa)*DENDA_PER_HARI : 0;
 ?>
 <div class="req-row <?= $tl?'terlambat-row':'' ?>">
-    <div class="mini-cover <?= $cm['c'] ?>" data-book-title="<?= htmlspecialchars($r['nama_buku'] ?? '') ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
+    <div class="mini-cover <?= $cm['c'] ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
     <div style="flex:1;min-width:0;">
         <div style="font-weight:600;color:#fff;font-size:.9rem;"><?= htmlspecialchars($r['nama_buku']) ?></div>
         <div style="font-size:.73rem;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">
@@ -151,11 +151,11 @@ body{display:flex;min-height:100vh;}
 
 <?php else: // semua ?>
 <?php while($r=$semua->fetch_assoc()):
-    $kk=strtolower($r['kategori']??''); $cmap=['umum'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-umum'],'motivasi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-motivasi'],'sastra'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-sastra'],'religi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-religi']];
-    $cm=$cmap[$kk]??['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-default'];
+    $kk=strtolower($r['kategori']??''); $cmap=['umum'=>['e'=>'📖','c'=>'c-umum'],'motivasi'=>['e'=>'🚀','c'=>'c-motivasi'],'sastra'=>['e'=>'✍️','c'=>'c-sastra'],'religi'=>['e'=>'🕌','c'=>'c-religi']];
+    $cm=$cmap[$kk]??['e'=>'📚','c'=>'c-default'];
 ?>
 <div class="req-row">
-    <div class="mini-cover <?= $cm['c'] ?>" data-book-title="<?= htmlspecialchars($r['nama_buku'] ?? '') ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
+    <div class="mini-cover <?= $cm['c'] ?>"><?php if(!empty($r['gambar'])&&file_exists('../img/buku/'.$r['gambar'])): ?><img src="../img/buku/<?= htmlspecialchars($r['gambar']) ?>"><?php else: ?><?= $cm['e'] ?><?php endif; ?></div>
     <div style="flex:1;min-width:0;">
         <div style="font-weight:600;color:#fff;font-size:.9rem;"><?= htmlspecialchars($r['nama_buku']) ?></div>
         <div style="font-size:.73rem;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">
@@ -192,20 +192,5 @@ body{display:flex;min-height:100vh;}
 function bukaTolak(id){document.getElementById('inputReq').value=id;document.getElementById('modalTolak').classList.add('show');}
 function tutupTolak(){document.getElementById('modalTolak').classList.remove('show');}
 document.getElementById('modalTolak').addEventListener('click',function(e){if(e.target===this)tutupTolak();});
-</script>
-<script>
-(function(){
-function fetchCover(div){
-    var title=div.dataset.bookTitle; if(!title) return;
-    var ph=div.querySelector('img.logo-ph'); if(!ph) return;
-    fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-    .then(function(r){return r.json();}).then(function(d){
-        var t=d.items&&d.items[0]&&d.items[0].volumeInfo&&d.items[0].volumeInfo.imageLinks&&d.items[0].volumeInfo.imageLinks.thumbnail;
-        if(t){var img=document.createElement('img');img.src=t.replace('http:','https:');img.className='cover-img';img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){img.remove();};ph.parentNode.replaceChild(img,ph);}
-    }).catch(function(){});
-}
-var divs=document.querySelectorAll('[data-book-title]');
-divs.forEach(function(div,i){setTimeout(function(){fetchCover(div);},i*150);});
-})();
 </script>
 </body></html>

@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'config/database.php';
-if (isLoggedIn()) redirect(isKepala() ? 'admin/dashboard-kepala.php' : (isPustakawan() ? 'admin/dashboard.php' : 'index.php'));
+if (isLoggedIn()) redirect(isStaff() ? 'admin/dashboard.php' : 'index.php');
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['nama']     = $user['nama'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role']     = $user['role'];
-            $dest = $user['role']==='kepala_perpustakaan' ? 'admin/dashboard-kepala.php' : ($user['role']==='pustakawan' ? 'admin/dashboard.php' : (isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php')); redirect($dest);
+            $dest = in_array($user['role'],['pustakawan','kepala_perpustakaan']) ? 'admin/dashboard.php' : (isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php'); redirect($dest);
         } else {
             $error = 'Username atau password salah.';
         }

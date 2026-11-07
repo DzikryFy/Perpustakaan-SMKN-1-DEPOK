@@ -1,7 +1,3 @@
--- E-Library SMKN 1 Depok — Schema v3
-CREATE DATABASE IF NOT EXISTS db_perpustakaan CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE db_perpustakaan;
-
 CREATE TABLE IF NOT EXISTS users (
     id_user  INT AUTO_INCREMENT PRIMARY KEY,
     nama     VARCHAR(255) NOT NULL,
@@ -60,23 +56,6 @@ CREATE TABLE IF NOT EXISTS pengembalian (
     kondisi_buku         ENUM('Baik','Rusak Ringan','Rusak Berat') NOT NULL DEFAULT 'Baik',
     catatan_petugas      TEXT DEFAULT NULL,
     status               ENUM('Ada','Tidak Ada') NOT NULL DEFAULT 'Ada',
-    FOREIGN KEY (id_pinjam) REFERENCES peminjaman(id_pinjam) ON DELETE CASCADE,
-    FOREIGN KEY (id_buku)   REFERENCES buku(id_buku)         ON DELETE CASCADE,
-    FOREIGN KEY (id_user)   REFERENCES users(id_user)        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
-CREATE TABLE IF NOT EXISTS request_pengembalian (
-    id_req_kembali INT AUTO_INCREMENT PRIMARY KEY,
-    id_pinjam      INT NOT NULL,
-    id_buku        INT NOT NULL,
-    id_user        INT NOT NULL,
-    tanggal_request DATE NOT NULL,
-    kondisi_buku   ENUM('Baik','Rusak Ringan','Rusak Berat') NOT NULL DEFAULT 'Baik',
-    catatan        TEXT DEFAULT NULL,
-    status         ENUM('menunggu','disetujui','ditolak') NOT NULL DEFAULT 'menunggu',
-    denda          INT NOT NULL DEFAULT 0,
-    catatan_petugas TEXT DEFAULT NULL,
     FOREIGN KEY (id_pinjam) REFERENCES peminjaman(id_pinjam) ON DELETE CASCADE,
     FOREIGN KEY (id_buku)   REFERENCES buku(id_buku)         ON DELETE CASCADE,
     FOREIGN KEY (id_user)   REFERENCES users(id_user)        ON DELETE CASCADE

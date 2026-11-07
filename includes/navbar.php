@@ -11,7 +11,7 @@ $_canBorrow = $loggedIn && in_array($roleUser, ['siswa','guru','pustakawan']);
 <nav class="navbar navbar-expand-lg sticky-top" id="mainNav">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= $base ?>index.php">
-            <div class="brand-icon"><img src="img/logo-wandek.png" alt="" style="width:44px;opacity:.75;position:relative;z-index:1;"></div>
+            <div class="brand-icon">📚</div>
             <div><div class="brand-name">E-Library</div><div class="brand-sub">SMKN 1 DEPOK</div></div>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -23,7 +23,6 @@ $_canBorrow = $loggedIn && in_array($roleUser, ['siswa','guru','pustakawan']);
                 <li class="nav-item"><a class="nav-link" href="<?= $base ?>koleksi.php">Koleksi Buku</a></li>
                 <?php if ($_canBorrow): ?>
                 <li class="nav-item"><a class="nav-link" href="<?= $base ?>peminjaman-buku.php">Peminjaman</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= $base ?>form-pengembalian.php">Kembalikan Buku</a></li>
                 <?php endif; ?>
                 <?php if ($loggedIn && !$_isStaff): ?>
                 <li class="nav-item"><a class="nav-link" href="<?= $base ?>saran-buku.php">Saran Buku</a></li>
@@ -58,7 +57,6 @@ $_canBorrow = $loggedIn && in_array($roleUser, ['siswa','guru','pustakawan']);
                         <?php if ($_canBorrow): ?>
                         <li><a class="dropdown-item-custom" href="<?= $base ?>peminjaman-buku.php"><i class="bi bi-bookmark-plus"></i> Peminjaman Saya</a></li>
                         <li><a class="dropdown-item-custom" href="<?= $base ?>riwayat-peminjaman.php"><i class="bi bi-clock-history"></i> Riwayat Pinjaman</a></li>
-                        <li><a class="dropdown-item-custom" href="<?= $base ?>form-pengembalian.php"><i class="bi bi-arrow-return-left"></i> Kembalikan Buku</a></li>
                         <?php endif; ?>
                         <?php if ($loggedIn && !$_isStaff): ?>
                         <li><a class="dropdown-item-custom" href="<?= $base ?>saran-buku.php"><i class="bi bi-lightbulb"></i> Saran Buku</a></li>

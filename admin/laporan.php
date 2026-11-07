@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
-requireKepala(); // hanya kepala perpustakaan
+requireStaff();
 $base='../'; $loggedIn=true; $namaUser=$_SESSION['nama']??''; $roleUser=$_SESSION['role']??'';
 
 // ── STATISTIK UTAMA ───────────────────────────────────────────
@@ -17,10 +17,10 @@ $request_pending = $conn->query("SELECT COUNT(*) c FROM request_peminjaman WHERE
 $saran_baru    = $conn->query("SELECT COUNT(*) c FROM saran_buku WHERE status='baru'")->fetch_assoc()['c'];
 
 // ── BUKU TERPOPULER ───────────────────────────────────────────
-$buku_populer = $conn->query("SELECT b.nama_buku,b.kategori,b.gambar,COUNT(p.id_pinjam) AS total FROM peminjaman p JOIN buku b ON p.id_buku=b.id_buku GROUP BY p.id_buku,b.nama_buku,b.kategori,b.gambar ORDER BY total DESC LIMIT 8");
+$buku_populer = $conn->query("SELECT b.nama_buku,b.kategori,b.gambar,COUNT(p.id_pinjam) AS total FROM peminjaman p JOIN buku b ON p.id_buku=b.id_buku GROUP BY p.id_buku ORDER BY total DESC LIMIT 8");
 
 // ── PEMINJAMAN PER BULAN (12 bulan terakhir) ──────────────────
-$bulan_data = $conn->query("SELECT DATE_FORMAT(tanggal_peminjaman,'%b %Y') AS bln, COUNT(*) AS cnt, YEAR(tanggal_peminjaman) AS y, MONTH(tanggal_peminjaman) AS m FROM peminjaman WHERE tanggal_peminjaman >= DATE_SUB(NOW(),INTERVAL 11 MONTH) GROUP BY y,m,bln ORDER BY y ASC,m ASC");
+$bulan_data = $conn->query("SELECT MONTHNAME(tanggal_peminjaman) as bulan, COUNT(*) as total FROM peminjaman GROUP BY bulan");
 $chart_labels=[]; $chart_vals=[];
 while($r=$bulan_data->fetch_assoc()){ $chart_labels[]=$r['bln']; $chart_vals[]=$r['cnt']; }
 
@@ -132,8 +132,8 @@ body{display:flex;min-height:100vh;}
         while($r=$buku_populer->fetch_assoc()) { $pop_rows[]=$r; if($r['total']>$max_pop) $max_pop=$r['total']; }
         foreach($pop_rows as $r):
             $kk=strtolower($r['kategori']??'');
-            $cmap=['umum'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-umum'],'motivasi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-motivasi'],'sastra'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-sastra'],'religi'=>['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-religi']];
-            $cm=$cmap[$kk]??['e'=>'<img src="../img/logo-wandek.png" alt="" style="width:36px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','c'=>'c-default'];
+            $cmap=['umum'=>['e'=>'📖','c'=>'c-umum'],'motivasi'=>['e'=>'🚀','c'=>'c-motivasi'],'sastra'=>['e'=>'✍️','c'=>'c-sastra'],'religi'=>['e'=>'🕌','c'=>'c-religi']];
+            $cm=$cmap[$kk]??['e'=>'📚','c'=>'c-default'];
             $pct=round($r['total']/$max_pop*100);
         ?>
         <div class="pop-row">
@@ -237,20 +237,5 @@ new Chart(document.getElementById('chartKat'),{
     data:{labels:<?= json_encode($kat_labels) ?>,datasets:[{data:<?= json_encode($kat_vals) ?>,backgroundColor:['#e8b86d','#4a9eff','#a78bfa','#3aab6e','#e85d5d'],borderWidth:0,hoverOffset:8}]},
     options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#637a96',font:{size:11}}}}}
 });
-</script>
-<script>
-(function(){
-function fetchCover(div){
-    var title=div.dataset.bookTitle; if(!title) return;
-    var ph=div.querySelector('img.logo-ph'); if(!ph) return;
-    fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-    .then(function(r){return r.json();}).then(function(d){
-        var t=d.items&&d.items[0]&&d.items[0].volumeInfo&&d.items[0].volumeInfo.imageLinks&&d.items[0].volumeInfo.imageLinks.thumbnail;
-        if(t){var img=document.createElement('img');img.src=t.replace('http:','https:');img.className='cover-img';img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){img.remove();};ph.parentNode.replaceChild(img,ph);}
-    }).catch(function(){});
-}
-var divs=document.querySelectorAll('[data-book-title]');
-divs.forEach(function(div,i){setTimeout(function(){fetchCover(div);},i*150);});
-})();
 </script>
 </body></html>

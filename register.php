@@ -1,8 +1,7 @@
 <?php
 session_start();
 require_once 'config/database.php';
-if (isLoggedIn()) redirect(isStaff() ? 'admin/dashboard.php' : 'index.php');
-
+if (isLoggedIn()) redirect(isAdmin() ? 'admin/dashboard.php' : 'index.php');
 $error = $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama     = sanitize($_POST['nama'] ?? '');

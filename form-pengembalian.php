@@ -1,258 +1,295 @@
 <?php
 session_start();
 require_once 'config/database.php';
-requireLogin('login.php?redirect=form-pengembalian.php');
-if(!canBorrow()) redirect('index.php');
+requireLogin();
 
-$loggedIn=true; $namaUser=$_SESSION['nama']??''; $roleUser=$_SESSION['role']??'';
-$id_user=(int)$_SESSION['id_user']; $base=''; $msg=$error='';
+$loggedIn = true;
+$namaUser = $_SESSION['nama'] ?? '';
+$roleUser = $_SESSION['role'] ?? '';
+$id_user  = $_SESSION['id_user'];
+$base     = '';
 
-// Proses ajukan pengembalian
-if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['aksi']??'')==='ajukan'){
-    $id_pinjam=(int)$_POST['id_pinjam'];
-    $kondisi=in_array($_POST['kondisi']??'',['Baik','Rusak Ringan','Rusak Berat'])?$_POST['kondisi']:'Baik';
-    $catatan=sanitize($_POST['catatan']??'');
-    $tgl=date('Y-m-d');
+$msg   = '';
+$error = '';
 
-    $pinjam=$conn->query("SELECT * FROM peminjaman WHERE id_pinjam=$id_pinjam AND id_user=$id_user AND status='Tidak Ada'")->fetch_assoc();
-    if(!$pinjam){ $error='Data peminjaman tidak valid.'; }
-    else {
-        $ada=$conn->query("SELECT id_req_kembali FROM request_pengembalian WHERE id_pinjam=$id_pinjam AND status='menunggu'")->num_rows;
-        if($ada){ $error='Kamu sudah mengajukan pengembalian untuk buku ini, tunggu diproses pustakawan.'; }
-        else {
-            $s=$conn->prepare("INSERT INTO request_pengembalian (id_pinjam,id_buku,id_user,tanggal_request,kondisi_buku,catatan,status) VALUES (?,?,?,?,?,?,'menunggu')");
-            $s->bind_param("iiisss",$id_pinjam,$pinjam['id_buku'],$id_user,$tgl,$kondisi,$catatan);
-            $s->execute()?($msg='✅ Pengajuan pengembalian terkirim! Pustakawan akan memverifikasi dan menghitung denda jika ada.'):($error='Gagal mengirim pengajuan.');
+// Proses form pengembalian
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id_pinjam = (int)($_POST['id_pinjam'] ?? 0);
+    $tgl_kembali = date('Y-m-d');
+
+    // Validasi: pastikan pinjaman milik user ini
+    $pinjam = $conn->query("SELECT * FROM peminjaman WHERE id_pinjam=$id_pinjam AND id_user=$id_user AND status='Tidak Ada'")->fetch_assoc();
+
+    if (!$pinjam) {
+        $error = 'Data peminjaman tidak valid atau sudah dikembalikan.';
+    } else {
+        // Cek belum ada pengembalian
+        $cek = $conn->query("SELECT id_pengembalian FROM pengembalian WHERE id_pinjam=$id_pinjam")->num_rows;
+        if ($cek > 0) {
+            $error = 'Pengembalian untuk pinjaman ini sudah tercatat. Menunggu verifikasi admin.';
+        } else {
+            $id_buku   = $pinjam['id_buku'];
+            $nama_buku = $pinjam['nama_buku'];
+            $status    = 'Ada'; // buku dikembalikan = ada di rak
+
+            $s = $conn->prepare("INSERT INTO pengembalian (id_pinjam,id_buku,id_user,tanggal_pengembalian,nama_buku,status) VALUES (?,?,?,?,?,?)");
+            $s->bind_param("iiisss", $id_pinjam, $id_buku, $id_user, $tgl_kembali, $nama_buku, $status);
+            if ($s->execute()) {
+                // Update status peminjaman
+                $conn->query("UPDATE peminjaman SET status='Ada' WHERE id_pinjam=$id_pinjam");
+                // Tambah stok kembali
+                $conn->query("UPDATE buku SET stock=stock+1 WHERE id_buku=$id_buku");
+                $msg = 'Pengembalian berhasil dicatat! Terima kasih sudah mengembalikan buku.';
+            } else {
+                $error = 'Gagal mencatat pengembalian. Coba lagi.';
+            }
             $s->close();
         }
     }
 }
 
-// Batal request
-if(isset($_GET['batal'])){
-    $rid=(int)$_GET['batal'];
-    $conn->query("DELETE FROM request_pengembalian WHERE id_req_kembali=$rid AND id_user=$id_user AND status='menunggu'");
-    redirect('form-pengembalian.php?msg=batal');
+// Jika dari tombol "Kembalikan" di halaman pinjaman
+$pre_pinjam = (int)($_GET['pinjam'] ?? 0);
+$pre_data   = null;
+if ($pre_pinjam) {
+    $pre_data = $conn->query("SELECT * FROM peminjaman WHERE id_pinjam=$pre_pinjam AND id_user=$id_user AND status='Tidak Ada'")->fetch_assoc();
 }
-if(isset($_GET['msg'])&&$_GET['msg']==='batal') $msg='Pengajuan pengembalian dibatalkan.';
 
-// Data pinjaman aktif
-$pinjaman_aktif=$conn->query("SELECT p.*,b.gambar,b.kategori,b.penerbit FROM peminjaman p JOIN buku b ON p.id_buku=b.id_buku WHERE p.id_user=$id_user AND p.status='Tidak Ada' ORDER BY p.batas_kembali ASC");
+// Daftar pinjaman aktif user (belum dikembalikan & belum ada pengembalian)
+$aktif = $conn->query("
+    SELECT p.*, b.kategori
+    FROM peminjaman p
+    JOIN buku b ON p.id_buku = b.id_buku
+    WHERE p.id_user=$id_user AND p.status='Tidak Ada'
+    AND p.id_pinjam NOT IN (SELECT id_pinjam FROM pengembalian)
+    ORDER BY p.id_pinjam DESC
+");
 
-// Request pengembalian sedang diajukan
-$req_kembali=$conn->query("SELECT r.*,p.nama_buku,p.batas_kembali,b.gambar,b.kategori FROM request_pengembalian r JOIN peminjaman p ON r.id_pinjam=p.id_pinjam JOIN buku b ON r.id_buku=b.id_buku WHERE r.id_user=$id_user ORDER BY r.id_req_kembali DESC LIMIT 10");
+// Riwayat pengembalian user
+$riwayat = $conn->query("
+    SELECT pg.*, p.tanggal_peminjaman
+    FROM pengembalian pg
+    JOIN peminjaman p ON pg.id_pinjam = p.id_pinjam
+    WHERE pg.id_user = $id_user
+    ORDER BY pg.id_pengembalian DESC
+");
 
-// id pinjam yang sudah diajukan
-$ajukan_ids=[];
-$rq=$conn->query("SELECT id_pinjam FROM request_pengembalian WHERE id_user=$id_user AND status='menunggu'");
-while($r=$rq->fetch_assoc()) $ajukan_ids[]=$r['id_pinjam'];
-
-$cm_map=['umum'=>['e'=>'📖','c'=>'c-umum'],'motivasi'=>['e'=>'🚀','c'=>'c-motivasi'],'sastra'=>['e'=>'✍️','c'=>'c-sastra'],'religi'=>['e'=>'🕌','c'=>'c-religi']];
-?><!DOCTYPE html><html lang="id"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pengajuan Pengembalian | E-Library</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<link rel="stylesheet" href="style.css">
-<style>
-.ph1{padding:40px 0 26px;border-bottom:1px solid var(--border);}
-.ph1 h1{font-family:'Playfair Display',serif;font-size:1.9rem;color:#fff;margin-bottom:4px;}
-.pb1{padding:32px 0 80px;}
-.sec-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600;margin-bottom:4px;}
-.sec-t{font-family:'Playfair Display',serif;font-size:1.3rem;color:#fff;margin-bottom:16px;}
-.pinjam-card{background:var(--card);border:1px solid var(--border);border-radius:13px;display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:10px;transition:border-color .2s;}
-.pinjam-card:hover{border-color:rgba(232,184,109,.2);}
-.pinjam-card.terlambat{border-color:rgba(232,93,93,.3);background:rgba(232,93,93,.03);}
-.p-cover{width:46px;height:58px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;}
-.p-cover img.cover-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
-.p-cover img.logo-ph{width:24px;opacity:.6;}
-.c-umum{background:linear-gradient(135deg,#0d2540,#1a3d60);}
-.c-motivasi{background:linear-gradient(135deg,#2d1f00,#5a3c00);}
-.c-sastra{background:linear-gradient(135deg,#1f0d2d,#3d1a5a);}
-.c-religi{background:linear-gradient(135deg,#0d2d1a,#1a5a3c);}
-.c-default{background:linear-gradient(135deg,#1a1f2d,#2d3a4a);}
-.badge-tl{background:rgba(232,93,93,.15);color:#ff9090;border:1px solid rgba(232,93,93,.3);border-radius:20px;font-size:.68rem;font-weight:600;padding:3px 10px;}
-.badge-ok{background:rgba(58,171,110,.12);color:var(--green);border:1px solid rgba(58,171,110,.25);border-radius:20px;font-size:.68rem;font-weight:600;padding:3px 10px;}
-.badge-m{background:rgba(232,184,109,.12);color:var(--accent);border:1px solid rgba(232,184,109,.25);border-radius:20px;font-size:.68rem;font-weight:600;padding:3px 10px;}
-.btn-ajukan{background:linear-gradient(135deg,var(--accent),#d4a54e);border:none;border-radius:8px;padding:8px 16px;font-size:.8rem;font-weight:600;color:#0c1520;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
-.btn-ajukan:hover{opacity:.88;}
-.btn-ajukan:disabled{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);cursor:not-allowed;}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;}
-.modal-bg.show{display:flex;}
-.modal-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;width:460px;max-width:94vw;}
-.modal-box h4{font-family:'Playfair Display',serif;color:#fff;margin-bottom:6px;}
-.fi{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text);border-radius:9px;padding:10px 13px;font-size:.86rem;font-family:'DM Sans',sans-serif;transition:border .2s;}
-.fi:focus{outline:none;border-color:var(--accent);}
-.fi-select option{background:#152135;}
-.alert-ok{background:rgba(58,171,110,.1);border:1px solid rgba(58,171,110,.3);color:#5dd896;border-radius:11px;padding:13px 16px;margin-bottom:20px;font-size:.87rem;display:flex;gap:9px;}
-.alert-err{background:rgba(232,93,93,.1);border:1px solid rgba(232,93,93,.3);color:#ff9090;border-radius:11px;padding:13px 16px;margin-bottom:20px;font-size:.87rem;display:flex;gap:9px;}
-.info-box{background:rgba(232,184,109,.06);border:1px solid rgba(232,184,109,.15);border-radius:12px;padding:13px 16px;margin-bottom:24px;font-size:.82rem;color:var(--muted);display:flex;gap:9px;}
-.divider{border:none;border-top:1px solid var(--border);margin:28px 0;}
-.req-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
-.req-row:last-child{border-bottom:none;}
-.btn-batal-kecil{font-size:.73rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;transition:all .2s;}
-.btn-batal-kecil:hover{border-color:rgba(232,93,93,.4);color:#ff9090;}
-</style>
-</head><body>
-<?php include 'includes/navbar.php'; ?>
-<div class="ph1"><div class="container">
-    <div class="sec-lbl mb-1">Sistem Pengembalian</div>
-    <h1>Pengajuan Pengembalian</h1>
-    <p style="color:var(--muted);font-size:.87rem;margin:0">Ajukan pengembalian buku — pustakawan akan memverifikasi dan menghitung denda jika ada.</p>
-</div></div>
-
-<div class="container pb1">
-<?php if($msg): ?><div class="alert-ok"><i class="bi bi-check-circle-fill"></i><div><?= $msg ?></div></div><?php endif; ?>
-<?php if($error): ?><div class="alert-err"><i class="bi bi-exclamation-triangle-fill"></i><div><?= $error ?></div></div><?php endif; ?>
-
-<div class="info-box">
-    <i class="bi bi-info-circle-fill" style="color:var(--accent);font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
-    <div><strong style="color:var(--accent)">Alur Pengembalian:</strong> Ajukan pengembalian di sini → Bawa buku fisik ke perpustakaan → Pustakawan verifikasi kondisi &amp; hitung denda → Stok dikembalikan. Denda keterlambatan: <strong style="color:#fff">Rp 1.000/hari</strong>.</div>
-</div>
-
-<!-- Request dalam proses -->
-<?php if($req_kembali && $req_kembali->num_rows > 0): ?>
-<div class="sec-lbl">Pengajuan Dalam Proses</div>
-<div class="panel mb-4">
-    <div style="padding:0 18px;">
-    <?php while($r=$req_kembali->fetch_assoc()):
-        $kk=strtolower($r['kategori']??'');
-        $cm=$cm_map[$kk]??['e'=>'📚','c'=>'c-default'];
-        $bs=['menunggu'=>'badge-m','disetujui'=>'badge-ok','ditolak'=>'badge-tl'];
-        $bl=['menunggu'=>'Menunggu Verifikasi','disetujui'=>'Disetujui','ditolak'=>'Ditolak'];
-        $st=$r['status'];
-    ?>
-    <div class="req-row">
-        <div class="p-cover <?= $cm['c'] ?>" data-book-title="<?= htmlspecialchars($r['nama_buku']) ?>">
-            <?php if(!empty($r['gambar'])&&file_exists('img/buku/'.$r['gambar'])): ?>
-                <img src="img/buku/<?= htmlspecialchars($r['gambar']) ?>" class="cover-img">
-            <?php else: ?><img src="img/logo-wandek.png" class="logo-ph"><?php endif; ?>
-        </div>
-        <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;color:#fff;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($r['nama_buku']) ?></div>
-            <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">Kondisi: <?= $r['kondisi_buku'] ?> · <?= date('d M Y',strtotime($r['tanggal_request'])) ?></div>
-            <?php if($r['status']==='disetujui'&&$r['denda']>0): ?>
-            <div style="font-size:.74rem;color:#ff9090;margin-top:2px;"><i class="bi bi-cash-coin me-1"></i>Denda: <?= rupiah($r['denda']) ?></div>
-            <?php endif; ?>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <span class="<?= $bs[$st]??'badge-m' ?>"><?= $bl[$st]??$st ?></span>
-            <?php if($st==='menunggu'): ?>
-            <a href="form-pengembalian.php?batal=<?= $r['id_req_kembali'] ?>" class="btn-batal-kecil" onclick="return confirm('Batalkan pengajuan ini?')">Batal</a>
-            <?php endif; ?>
-        </div>
-    </div>
-    <?php endwhile; ?>
-    </div>
-</div>
-<hr class="divider">
-<?php endif; ?>
-
-<!-- Pinjaman aktif -->
-<div class="sec-lbl">Pinjaman Aktif</div>
-<div class="sec-t">Pilih Buku untuk Dikembalikan</div>
-
-<?php if($pinjaman_aktif && $pinjaman_aktif->num_rows > 0):
-while($r=$pinjaman_aktif->fetch_assoc()):
-    $kk=strtolower($r['kategori']??'');
-    $cm=$cm_map[$kk]??['e'=>'📚','c'=>'c-default'];
-    $terlambat=strtotime(date('Y-m-d'))>strtotime($r['batas_kembali']);
-    $sisa=ceil((strtotime($r['batas_kembali'])-strtotime(date('Y-m-d')))/86400);
-    $sudahAjukan=in_array($r['id_pinjam'],$ajukan_ids);
+$cover_map = [
+    'umum'     => ['emoji'=>'📖','class'=>'c-umum'],
+    'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi'],
+    'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra'],
+    'religi'   => ['emoji'=>'🕌','class'=>'c-religi'],
+];
 ?>
-<div class="pinjam-card <?= $terlambat?'terlambat':'' ?>">
-    <div class="p-cover <?= $cm['c'] ?>" data-book-title="<?= htmlspecialchars($r['nama_buku']) ?>">
-        <?php if(!empty($r['gambar'])&&file_exists('img/buku/'.$r['gambar'])): ?>
-            <img src="img/buku/<?= htmlspecialchars($r['gambar']) ?>" class="cover-img">
-        <?php else: ?><img src="img/logo-wandek.png" class="logo-ph"><?php endif; ?>
-    </div>
-    <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;color:#fff;font-size:.9rem;"><?= htmlspecialchars($r['nama_buku']) ?></div>
-        <div style="font-size:.73rem;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">
-            <span><i class="bi bi-calendar3 me-1"></i>Dipinjam: <?= date('d M Y',strtotime($r['tanggal_peminjaman'])) ?></span>
-            <span><i class="bi bi-calendar-x me-1"></i>Batas: <?= date('d M Y',strtotime($r['batas_kembali'])) ?></span>
-            <?php if($terlambat): ?>
-            <span style="color:#ff9090;"><i class="bi bi-exclamation-triangle me-1"></i>Terlambat <?= abs($sisa) ?> hari · Est. denda <?= rupiah(abs($sisa)*DENDA_PER_HARI) ?></span>
-            <?php endif; ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Pengembalian Buku | E-Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .page-wrap { padding:40px 0 70px; }
+        .page-title { font-family:'Playfair Display',serif; font-size:2rem; color:#fff; margin-bottom:6px; }
+        .page-sub   { color:var(--muted); font-size:0.87rem; margin-bottom:32px; }
+        .two-col    { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+
+        /* Panel */
+        .panel-user { background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px; }
+        .panel-head { padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px; }
+        .panel-head h3 { font-size:0.92rem;font-weight:600;color:#fff;margin:0; }
+        .panel-head i  { color:var(--accent);font-size:1rem; }
+        .panel-body-p  { padding:18px; }
+
+        /* Buku aktif card */
+        .aktif-card {
+            display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;
+            border:1px solid var(--border);margin-bottom:10px;background:rgba(255,255,255,0.02);
+            cursor:pointer;transition:border-color .2s;
+        }
+        .aktif-card:hover { border-color:rgba(232,184,109,0.3); }
+        .aktif-card.selected { border-color:var(--accent);background:rgba(232,184,109,0.05); }
+        .aktif-cover { width:44px;height:54px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+        .aktif-info .aj { font-size:0.87rem;font-weight:500;color:#fff;line-height:1.3;margin-bottom:3px; }
+        .aktif-info .am { font-size:0.73rem;color:var(--muted); }
+        .radio-dot { width:18px;height:18px;border-radius:50%;border:2px solid var(--border);margin-left:auto;flex-shrink:0;transition:all .2s; }
+        .aktif-card.selected .radio-dot { border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 3px rgba(232,184,109,0.2); }
+
+        /* Form kembalikan */
+        .form-confirm { background:rgba(232,184,109,0.06);border:1px solid rgba(232,184,109,0.2);border-radius:12px;padding:18px;margin-top:14px; display:none; }
+        .form-confirm.show { display:block; }
+        .confirm-buku { display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:rgba(255,255,255,0.04);border-radius:9px; }
+        .confirm-buku .cj { font-size:0.9rem;font-weight:600;color:#fff; }
+        .confirm-buku .cm { font-size:0.75rem;color:var(--muted);margin-top:2px; }
+        .btn-submit-kembali { width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#d4a54e);color:#0c1520;font-weight:600;font-size:0.9rem;border:none;cursor:pointer;transition:transform .15s; }
+        .btn-submit-kembali:hover { transform:translateY(-2px); }
+
+        /* Alert */
+        .alert-ok  { background:rgba(58,171,110,0.1);border:1px solid rgba(58,171,110,0.2);color:#75d8a0;border-radius:10px;padding:12px 16px;font-size:0.85rem;margin-bottom:18px; }
+        .alert-err { background:rgba(232,93,93,0.1); border:1px solid rgba(232,93,93,0.2); color:#ff9090; border-radius:10px;padding:12px 16px;font-size:0.85rem;margin-bottom:18px; }
+
+        /* Riwayat tabel */
+        .tbl-mini { width:100%;border-collapse:collapse;font-size:0.8rem; }
+        .tbl-mini th { padding:9px 14px;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);text-align:left; }
+        .tbl-mini td { padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04); }
+        .tbl-mini tr:last-child td { border-bottom:none; }
+
+        /* Empty */
+        .empty-sm { text-align:center;padding:28px;color:var(--muted);font-size:0.85rem; }
+        .empty-sm i { display:block;font-size:1.8rem;margin-bottom:8px;opacity:.3; }
+
+        @media(max-width:768px){ .two-col { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+<?php include 'includes/navbar.php'; ?>
+
+<div class="container page-wrap">
+    <h1 class="page-title">Pengembalian Buku</h1>
+    <p class="page-sub">Catat pengembalian buku yang sedang kamu pinjam</p>
+
+    <?php if ($msg): ?><div class="alert-ok"><i class="bi bi-check-circle me-2"></i><?= $msg ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert-err"><i class="bi bi-exclamation-circle me-2"></i><?= $error ?></div><?php endif; ?>
+
+    <div class="two-col">
+
+        <!-- KIRI: Form Kembalikan -->
+        <div>
+            <div class="panel-user">
+                <div class="panel-head"><i class="bi bi-arrow-bar-left"></i><h3>Buku yang Sedang Dipinjam</h3></div>
+                <div class="panel-body-p">
+                    <?php if ($aktif && $aktif->num_rows > 0): ?>
+                    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px">Pilih buku yang ingin dikembalikan:</p>
+                    <form method="POST" id="formKembali">
+                        <input type="hidden" name="id_pinjam" id="selectedPinjam" value="">
+
+                        <?php while ($a = $aktif->fetch_assoc()):
+                            $katK = strtolower($a['kategori'] ?? '');
+                            $cm   = $cover_map[$katK] ?? ['emoji'=>'📚','class'=>'c-default'];
+                            $isPreSelected = ($pre_pinjam == $a['id_pinjam']);
+                        ?>
+                        <div class="aktif-card <?= $isPreSelected?'selected':'' ?>"
+                             onclick="selectBuku(this, <?= $a['id_pinjam'] ?>, '<?= addslashes(htmlspecialchars($a['nama_buku'])) ?>', '<?= date('d M Y',strtotime($a['tanggal_peminjaman'])) ?>', '<?= $cm['emoji'] ?>', '<?= $cm['class'] ?>')">
+                            <div class="buku-cover <?= $cm['class'] ?> aktif-cover"><?= $cm['emoji'] ?></div>
+                            <div class="aktif-info">
+                                <div class="aj"><?= htmlspecialchars($a['nama_buku']) ?></div>
+                                <div class="am"><i class="bi bi-calendar3 me-1"></i>Dipinjam: <?= date('d M Y', strtotime($a['tanggal_peminjaman'])) ?></div>
+                            </div>
+                            <div class="radio-dot"></div>
+                        </div>
+                        <?php endwhile; ?>
+
+                        <!-- Form konfirmasi -->
+                        <div class="form-confirm <?= $pre_data?'show':'' ?>" id="formConfirm">
+                            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em">Konfirmasi Pengembalian</p>
+                            <div class="confirm-buku" id="confirmDetail">
+                                <?php if ($pre_data): ?>
+                                <?php
+                                $pd = $conn->query("SELECT kategori FROM buku WHERE id_buku={$pre_data['id_buku']}")->fetch_assoc();
+                                $pkatK = strtolower($pd['kategori']??'');
+                                $pcm   = $cover_map[$pkatK] ?? ['emoji'=>'📚','class'=>'c-default'];
+                                ?>
+                                <div class="buku-cover <?= $pcm['class'] ?> aktif-cover"><?= $pcm['emoji'] ?></div>
+                                <div>
+                                    <div class="cj"><?= htmlspecialchars($pre_data['nama_buku']) ?></div>
+                                    <div class="cm">Dipinjam: <?= date('d M Y',strtotime($pre_data['tanggal_peminjaman'])) ?></div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <div style="background:rgba(58,171,110,0.08);border:1px solid rgba(58,171,110,0.2);border-radius:8px;padding:10px 12px;font-size:0.8rem;color:#75d8a0;margin-bottom:14px">
+                                <i class="bi bi-info-circle me-2"></i>Tanggal pengembalian: <strong><?= date('d M Y') ?></strong>
+                            </div>
+                            <button type="submit" class="btn-submit-kembali" onclick="return confirm('Konfirmasi pengembalian buku ini?')">
+                                <i class="bi bi-check-lg me-2"></i>Konfirmasi Pengembalian
+                            </button>
+                        </div>
+                    </form>
+                    <?php else: ?>
+                    <div class="empty-sm">
+                        <i class="bi bi-check-all"></i>
+                        Tidak ada buku yang sedang dipinjam.
+                        <br><a href="koleksi.php" style="color:var(--accent);text-decoration:none;margin-top:8px;display:inline-block">Pinjam buku sekarang →</a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- KANAN: Riwayat Pengembalian -->
+        <div>
+            <div class="panel-user">
+                <div class="panel-head"><i class="bi bi-clock-history"></i><h3>Riwayat Pengembalian</h3></div>
+                <?php if ($riwayat && $riwayat->num_rows > 0): ?>
+                <table class="tbl-mini">
+                    <thead><tr><th>Buku</th><th>Tgl Pinjam</th><th>Tgl Kembali</th><th>Status</th></tr></thead>
+                    <tbody>
+                    <?php while ($r = $riwayat->fetch_assoc()): ?>
+                    <tr>
+                        <td style="font-weight:500;color:#fff;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($r['nama_buku']) ?></td>
+                        <td style="color:var(--muted)"><?= date('d/m/Y', strtotime($r['tanggal_peminjaman'])) ?></td>
+                        <td style="color:var(--muted)"><?= date('d/m/Y', strtotime($r['tanggal_pengembalian'])) ?></td>
+                        <td>
+                            <span style="padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:600;background:<?= $r['status']==='Ada'?'rgba(58,171,110,0.12)':'rgba(232,93,93,0.12)' ?>;color:<?= $r['status']==='Ada'?'var(--green)':'var(--red)' ?>">
+                                <?= $r['status']==='Ada' ? 'Kembali' : 'Tidak Ada' ?>
+                            </span>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                    </tbody>
+                </table>
+                <?php else: ?>
+                <div class="empty-sm">
+                    <i class="bi bi-inbox"></i>
+                    Belum ada riwayat pengembalian.
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Info -->
+            <div style="background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.15);border-radius:12px;padding:16px 18px;font-size:0.82rem;color:rgba(255,255,255,0.6);line-height:1.7">
+                <div style="font-weight:600;color:var(--blue);margin-bottom:6px"><i class="bi bi-info-circle me-2"></i>Informasi</div>
+                Pengembalian buku dilakukan secara mandiri melalui sistem ini. Pastikan buku sudah diserahkan ke petugas perpustakaan sebelum mengkonfirmasi pengembalian.
+            </div>
         </div>
     </div>
-    <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;">
-        <?= $terlambat?'<span class="badge-tl">Terlambat</span>':'<span class="badge-ok">Sisa '.max(0,$sisa).' hari</span>' ?>
-        <?php if($sudahAjukan): ?>
-        <button class="btn-ajukan" disabled><i class="bi bi-hourglass-split me-1"></i>Diajukan</button>
-        <?php else: ?>
-        <button class="btn-ajukan" onclick="bukaModal(<?= $r['id_pinjam'] ?>,<?= json_encode($r['nama_buku']) ?>,<?= $terlambat?abs($sisa):0 ?>)">
-            <i class="bi bi-arrow-return-left me-1"></i>Ajukan Kembali
-        </button>
-        <?php endif; ?>
-    </div>
-</div>
-<?php endwhile;
-else: ?>
-<div style="text-align:center;padding:40px;background:var(--card);border:1px dashed var(--border);border-radius:13px;color:var(--muted);font-size:.85rem;">
-    <i class="bi bi-book-half" style="font-size:1.8rem;display:block;margin-bottom:8px;opacity:.3;"></i>
-    Tidak ada buku yang sedang dipinjam.
-    <a href="peminjaman-buku.php" style="color:var(--accent);text-decoration:none;display:block;margin-top:8px;">Pinjam buku sekarang →</a>
-</div>
-<?php endif; ?>
 </div>
 
-<!-- Modal -->
-<div class="modal-bg" id="modalKembali">
-    <div class="modal-box">
-        <h4><i class="bi bi-arrow-return-left me-2" style="color:var(--accent)"></i>Ajukan Pengembalian</h4>
-        <p id="mkJudul" style="color:var(--accent);font-size:.88rem;font-weight:600;margin-bottom:16px;"></p>
-        <div id="mkDendaInfo" style="display:none;background:rgba(232,93,93,.08);border:1px solid rgba(232,93,93,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#ff9090;">
-            <i class="bi bi-exclamation-triangle me-1"></i>Buku ini terlambat. Perkiraan denda: <strong id="mkDendaEst"></strong>
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-inner">
+            <div class="footer-brand"><span class="footer-icon">📚</span> E-Library SMKN 1 Depok</div>
+            <div class="footer-copy">&copy; <?= date('Y') ?> E-Library Project. All Rights Reserved.</div>
+            <div class="footer-links"><a href="logout.php">Keluar</a></div>
         </div>
-        <form method="POST" id="formKembali">
-            <input type="hidden" name="aksi" value="ajukan">
-            <input type="hidden" name="id_pinjam" id="mkPinjam">
-            <div style="margin-bottom:14px;">
-                <label style="font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:5px;">Kondisi Buku</label>
-                <select name="kondisi" class="fi fi-select">
-                    <option value="Baik">Baik — tidak ada kerusakan</option>
-                    <option value="Rusak Ringan">Rusak Ringan — lecet / halaman lusuh</option>
-                    <option value="Rusak Berat">Rusak Berat — robek / basah / hilang halaman</option>
-                </select>
-            </div>
-            <div style="margin-bottom:18px;">
-                <label style="font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:5px;">Catatan (opsional)</label>
-                <textarea name="catatan" class="fi" style="resize:vertical;min-height:60px;" placeholder="Ceritakan kondisi buku jika ada kerusakan..."></textarea>
-            </div>
-            <div style="display:flex;gap:10px;">
-                <button type="button" onclick="tutupModal()" style="flex:1;padding:10px;border-radius:9px;background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;">Batal</button>
-                <button type="submit" style="flex:2;padding:10px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#d4a54e);border:none;font-weight:600;color:#0c1520;cursor:pointer;"><i class="bi bi-send me-1"></i>Kirim Pengajuan</button>
-            </div>
-        </form>
     </div>
-</div>
-
-<footer class="site-footer"><div class="container"><div class="footer-inner">
-    <div class="footer-brand"><img src="img/logo-wandek.png" style="width:24px;vertical-align:middle;margin-right:6px;">E-Library SMKN 1 Depok</div>
-    <div class="footer-copy">&copy; <?= date('Y') ?> E-Library. All Rights Reserved.</div>
-    <div class="footer-links"><a href="peminjaman-buku.php">Peminjaman</a><a href="riwayat-peminjaman.php">Riwayat</a></div>
-</div></div></footer>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-window.addEventListener('scroll',()=>document.getElementById('mainNav').classList.toggle('scrolled',scrollY>30));
-const DENDA=<?= DENDA_PER_HARI ?>;
-function rupiah(n){return 'Rp '+n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
-function bukaModal(pid,judul,hariTl){
-    document.getElementById('mkPinjam').value=pid;
-    document.getElementById('mkJudul').textContent=judul;
-    const di=document.getElementById('mkDendaInfo');
-    if(hariTl>0){di.style.display='block';document.getElementById('mkDendaEst').textContent=rupiah(hariTl*DENDA);}
-    else di.style.display='none';
-    document.getElementById('modalKembali').classList.add('show');
+window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30);});
+
+// Pre-select jika dari URL ?pinjam=
+<?php if ($pre_pinjam && $pre_data): ?>
+document.getElementById('selectedPinjam').value = <?= $pre_pinjam ?>;
+<?php endif; ?>
+
+function selectBuku(el, id, judul, tglPinjam, emoji, coverClass) {
+    // Reset semua
+    document.querySelectorAll('.aktif-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+
+    // Set value hidden input
+    document.getElementById('selectedPinjam').value = id;
+
+    // Update konfirmasi detail
+    document.getElementById('confirmDetail').innerHTML =
+        `<div class="buku-cover ${coverClass} aktif-cover" style="width:44px;height:54px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:20px">${emoji}</div>
+         <div><div class="cj">${judul}</div><div class="cm">Dipinjam: ${tglPinjam}</div></div>`;
+
+    // Tampilkan form konfirmasi
+    document.getElementById('formConfirm').classList.add('show');
 }
-function tutupModal(){document.getElementById('modalKembali').classList.remove('show');}
-document.getElementById('modalKembali').addEventListener('click',function(e){if(e.target===this)tutupModal();});
-// Cover fetch
-(function(){
-function fc(div){var t=div.dataset.bookTitle;if(!t)return;var ph=div.querySelector('.logo-ph');if(!ph)return;fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(t)+'&maxResults=1').then(r=>r.json()).then(d=>{var th=d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;if(th){var img=document.createElement('img');img.src=th.replace('http:','https:');img.className='cover-img';img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';img.onerror=()=>img.remove();ph.replaceWith(img);}}).catch(()=>{});}
-document.querySelectorAll('[data-book-title]').forEach((d,i)=>setTimeout(()=>fc(d),i*150));
-})();
 </script>
-</body></html>
+</body>
+</html>

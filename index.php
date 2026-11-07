@@ -23,7 +23,7 @@ $inisial   = $loggedIn ? strtoupper(substr($namaUser, 0, 1)) : '';
     <nav class="navbar navbar-expand-lg sticky-top" id="mainNav">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <div class="brand-icon"><img src="img/logo-wandek.png" alt="" style="width:30px;"></div>
+                <div class="brand-icon"><img src="img/logo-onedek.png" alt="" style="width: 30px;"></div>
                 <div>
                     <div class="brand-name">E-Library</div>
                     <div class="brand-sub">SMKN 1 DEPOK</div>
@@ -256,7 +256,7 @@ $inisial   = $loggedIn ? strtoupper(substr($namaUser, 0, 1)) : '';
                             <img src="img/area-luar.jpg" alt="Rak Buku Luar">
                         </div>
                         <div class="fas-mini-body">
-                            <h5><img src="img/logo-wandek.png" alt="" style="width:28px;vertical-align:middle;"> Rak Buku &amp; Majalah</h5>
+                            <h5>📚 Rak Buku &amp; Majalah</h5>
                             <p>Rak display kayu dan metal berisi koleksi buku, majalah, dan bacaan populer.</p>
                         </div>
                     </div>
@@ -316,7 +316,7 @@ $inisial   = $loggedIn ? strtoupper(substr($namaUser, 0, 1)) : '';
         <div class="container">
             <div class="footer-inner">
                 <div class="footer-brand">
-                    <span class="footer-icon"><img src="img/logo-wandek.png" alt="" style="width:30px;"></span>
+                    <span class="footer-icon"><img src="img/logo-onedek.png" alt="" style="width: 30px;"></span>
                     E-Library SMKN 1 Depok
                 </div>
                 <div class="footer-copy">

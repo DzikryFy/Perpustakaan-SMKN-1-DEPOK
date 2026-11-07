@@ -120,7 +120,7 @@ $saran_saya=$conn->query("SELECT * FROM saran_buku WHERE id_user=$id_user ORDER 
 </div>
 
 <footer class="site-footer"><div class="container"><div class="footer-inner">
-    <div class="footer-brand"><img src="img/logo-wandek.png" alt="" style="width:28px;vertical-align:middle;"> E-Library SMKN 1 Depok</div>
+    <div class="footer-brand">📚 E-Library SMKN 1 Depok</div>
     <div class="footer-copy">&copy; <?= date('Y') ?> E-Library. All Rights Reserved.</div>
     <div class="footer-links"><a href="koleksi.php">Koleksi</a><a href="peminjaman-buku.php">Peminjaman</a></div>
 </div></div></footer>

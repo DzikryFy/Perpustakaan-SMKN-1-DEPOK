@@ -17,40 +17,41 @@ $msg   = '';
 $error = '';
 
 // Proses peminjaman
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $loggedIn && canBorrow()) {
-    $id_user = (int)$_SESSION['id_user'];
-    $catatan = sanitize($_POST['catatan'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $loggedIn) {
+    $id_user = $_SESSION['id_user'];
     $tgl     = date('Y-m-d');
 
+    // Cek stok
     if ($buku['stock'] < 1) {
-        $error = 'Maaf, stok buku ini sedang habis.';
+        $error = 'Maaf, stok buku ini habis.';
     } else {
-        $ada_req   = $conn->query("SELECT id_request FROM request_peminjaman WHERE id_user=$id_user AND id_buku=$id AND status='menunggu'")->num_rows;
-        $ada_pinjam= $conn->query("SELECT id_pinjam FROM peminjaman WHERE id_user=$id_user AND id_buku=$id AND status='Tidak Ada'")->num_rows;
-        if ($ada_req > 0) {
-            $error = 'Kamu sudah memiliki permintaan buku ini yang menunggu persetujuan.';
-        } elseif ($ada_pinjam > 0) {
-            $error = 'Kamu masih meminjam buku ini. Kembalikan dulu sebelum meminjam lagi.';
+        // Cek user sudah pinjam buku ini & belum kembali
+        $cek = $conn->query("SELECT id_pinjam FROM peminjaman WHERE id_user=$id_user AND id_buku=$id AND status='Tidak Ada'")->num_rows;
+        if ($cek > 0) {
+            $error = 'Kamu masih memiliki pinjaman buku ini yang belum dikembalikan.';
         } else {
-            $s = $conn->prepare("INSERT INTO request_peminjaman (id_buku,id_user,tanggal_request,catatan,status) VALUES (?,?,?,?,'menunggu')");
-            $s->bind_param("iiss", $id, $id_user, $tgl, $catatan);
+            $nama_buku = $buku['nama_buku'];
+            $status    = 'Tidak Ada'; // buku sedang dipinjam = tidak ada di rak
+            $s = $conn->prepare("INSERT INTO peminjaman (id_buku,id_user,tanggal_peminjaman,nama_buku,status) VALUES (?,?,?,?,?)");
+            $s->bind_param("iisss", $id, $id_user, $tgl, $nama_buku, $status);
             if ($s->execute()) {
-                $msg = '✅ Permintaan pinjam terkirim! Tunggu persetujuan pustakawan lalu ambil buku.';
+                $conn->query("UPDATE buku SET stock=stock-1 WHERE id_buku=$id");
+                $msg = 'Buku berhasil dipinjam! Silakan ambil ke perpustakaan.';
+                // Refresh data buku
+                $buku = $conn->query("SELECT * FROM buku WHERE id_buku=$id")->fetch_assoc();
             } else {
-                $error = 'Gagal mengirim permintaan. Silakan coba lagi.';
+                $error = 'Gagal meminjam buku. Coba lagi.';
             }
             $s->close();
         }
     }
 }
 
-// Cek status user untuk buku ini
+// Cek apakah user sudah pinjam buku ini
 $sudahPinjam = false;
-$adaRequest  = false;
 if ($loggedIn) {
-    $id_user     = (int)$_SESSION['id_user'];
+    $id_user = $_SESSION['id_user'];
     $sudahPinjam = $conn->query("SELECT id_pinjam FROM peminjaman WHERE id_user=$id_user AND id_buku=$id AND status='Tidak Ada'")->num_rows > 0;
-    $adaRequest  = $conn->query("SELECT id_request FROM request_peminjaman WHERE id_user=$id_user AND id_buku=$id AND status='menunggu'")->num_rows > 0;
 }
 
 // Riwayat peminjaman buku ini (untuk admin)
@@ -64,13 +65,13 @@ $kat = $conn->real_escape_string($buku['kategori']);
 $related = $conn->query("SELECT * FROM buku WHERE kategori='$kat' AND id_buku!=$id LIMIT 4");
 
 $cover_map = [
-    'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-umum',    'color'=>'var(--blue)'],
-    'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-motivasi', 'color'=>'var(--accent)'],
-    'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-sastra',  'color'=>'var(--purple)'],
-    'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-religi',  'color'=>'var(--green)'],
+    'umum'     => ['emoji'=>'📖','class'=>'c-umum',    'color'=>'var(--blue)'],
+    'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi', 'color'=>'var(--accent)'],
+    'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra',  'color'=>'var(--purple)'],
+    'religi'   => ['emoji'=>'🕌','class'=>'c-religi',  'color'=>'var(--green)'],
 ];
 $katKey = strtolower($buku['kategori']);
-$cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default','color'=>'var(--muted)'];
+$cm     = $cover_map[$katKey] ?? ['emoji'=>'📚','class'=>'c-default','color'=>'var(--muted)'];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -165,15 +166,6 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
             .cover-box { position:static; }
             .cover-img { height:200px; font-size:56px; }
         }
-
-        /* Modal pinjam */
-        .modal-overlay{position:fixed;inset:0;background:rgba(4,8,15,0.6);display:none;align-items:center;justify-content:center;padding:24px;z-index:1050}
-        .modal-overlay.show{display:flex}
-        .modal-content{background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:560px;width:100%;padding:18px}
-        .modal-content h4{margin:0 0 8px;font-size:1.05rem;color:#fff}
-        .modal-content p{color:var(--muted);margin-bottom:12px}
-        .modal-content textarea{width:100%;min-height:100px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:var(--text);padding:10px;border-radius:8px;resize:vertical}
-        .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
     </style>
 </head>
 <body>
@@ -188,14 +180,7 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
     <div class="detail-grid">
         <!-- COVER KIRI -->
         <div class="cover-box">
-            <?php
-                $imgName = basename($buku['gambar'] ?? '');
-                if ($imgName && file_exists('img/buku/'.$imgName)):
-            ?>
-            <div class="buku-cover <?= $cm['class'] ?> cover-img"><img src="img/buku/<?= htmlspecialchars($imgName) ?>" alt="<?= htmlspecialchars($buku['nama_buku']) ?>" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"></div>
-            <?php else: ?>
             <div class="buku-cover <?= $cm['class'] ?> cover-img"><?= $cm['emoji'] ?></div>
-            <?php endif; ?>
             <div class="cover-meta">
                 <?php $stokPersen = min(100, ($buku['stock'] / max(1, $buku['stock']+3)) * 100); ?>
                 <div class="stok-big" style="color:<?= $buku['stock']>0?'var(--green)':'var(--red)' ?>"><?= $buku['stock'] ?></div>
@@ -264,22 +249,19 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
             <!-- Action -->
             <div class="action-section">
                 <?php if (!$loggedIn): ?>
-                <a href="login.php?redirect=detail_buku.php?id=<?= $id ?>" class="btn-pinjam"><i class="bi bi-box-arrow-in-right"></i> Login untuk Meminjam</a>
-                <?php elseif (!canBorrow()): ?>
-                <span class="btn-pinjam disabled"><i class="bi bi-slash-circle"></i> Tidak Dapat Meminjam</span>
+                <a href="login.php" class="btn-pinjam"><i class="bi bi-box-arrow-in-right"></i> Login untuk Meminjam</a>
                 <?php elseif ($sudahPinjam): ?>
                 <span class="btn-pinjam disabled"><i class="bi bi-clock"></i> Sedang Dipinjam</span>
-                <a href="form-pengembalian.php" class="btn-back-kat"><i class="bi bi-arrow-return-left"></i> Kembalikan</a>
-                <?php elseif ($adaRequest): ?>
-                <span class="btn-pinjam disabled"><i class="bi bi-hourglass-split"></i> Permintaan Diajukan</span>
-                <a href="peminjaman-buku.php" class="btn-back-kat"><i class="bi bi-list-check"></i> Status Pinjaman</a>
+                <a href="riwayat-peminjaman.php" class="btn-back-kat"><i class="bi bi-list-check"></i> Lihat Pinjaman</a>
                 <?php elseif ($buku['stock'] < 1): ?>
                 <span class="btn-pinjam disabled"><i class="bi bi-x-circle"></i> Stok Habis</span>
                 <?php else: ?>
-                <button type="button" class="btn-pinjam" onclick="document.getElementById('modalPinjam').classList.add('show')">
-                    <i class="bi bi-bookmark-plus"></i> Ajukan Pinjaman
-                </button>
-                <a href="peminjaman-buku.php" class="btn-back-kat"><i class="bi bi-list-check"></i> Pinjaman Saya</a>
+                <form method="POST" style="flex:1;min-width:160px">
+                    <button type="submit" class="btn-pinjam w-100" onclick="return confirm('Pinjam buku ini sekarang?')">
+                        <i class="bi bi-arrow-bar-right"></i> Pinjam Sekarang
+                    </button>
+                </form>
+                <a href="riwayat-peminjaman.php" class="btn-back-kat"><i class="bi bi-list-check"></i> Pinjaman Saya</a>
                 <?php endif; ?>
             </div>
 
@@ -318,28 +300,13 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
 </div>
 
 <!-- BUKU TERKAIT -->
-<!-- Modal Ajukan Pinjaman -->
-<div id="modalPinjam" class="modal-overlay" aria-hidden="true">
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modalPinjamTitle">
-        <form method="POST" action="detail_buku.php?id=<?= $id ?>">
-            <h4 id="modalPinjamTitle"><i class="bi bi-bookmark-plus me-1"></i> Ajukan Pinjaman</h4>
-            <p>Pastikan data sudah benar. Pustakawan akan meninjau permintaanmu.</p>
-            <label for="catatan">Catatan (opsional)</label>
-            <textarea name="catatan" id="catatan" placeholder="Contoh: Untuk keperluan tugas" ></textarea>
-            <div class="modal-actions">
-                <button type="submit" class="btn-pinjam"><i class="bi bi-send"></i> Kirim Permintaan</button>
-                <button type="button" class="btn-back-kat" onclick="closeModal()">Batal</button>
-            </div>
-        </form>
-    </div>
-</div>
 <?php if ($related->num_rows > 0): ?>
 <div class="container related-section">
     <h2>Buku Lain Kategori <?= htmlspecialchars($buku['kategori']) ?></h2>
     <div class="related-grid">
         <?php while ($r = $related->fetch_assoc()):
             $rKey = strtolower($r['kategori']);
-            $rcm  = $cover_map[$rKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+            $rcm  = $cover_map[$rKey] ?? ['emoji'=>'📚','class'=>'c-default'];
         ?>
         <a href="detail_buku.php?id=<?= $r['id_buku'] ?>" class="rel-card">
             <div class="buku-cover <?= $rcm['class'] ?> rel-cover"><?= $rcm['emoji'] ?></div>
@@ -356,7 +323,7 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
 <footer class="site-footer">
     <div class="container">
         <div class="footer-inner">
-            <div class="footer-brand"><span class="footer-icon"><img src="img/logo-wandek.png" alt="" style="width:44px;opacity:.75;position:relative;z-index:1;"></span> E-Library SMKN 1 Depok</div>
+            <div class="footer-brand"><span class="footer-icon">📚</span> E-Library SMKN 1 Depok</div>
             <div class="footer-copy">&copy; <?= date('Y') ?> E-Library Project. All Rights Reserved.</div>
             <div class="footer-links">
                 <?php if ($loggedIn): ?><a href="logout.php">Keluar</a>
@@ -367,41 +334,5 @@ $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30);});</script>
-
-<script>
-// Google Books cover fetcher
-(function(){
-    function fetchCover(div){
-        const title=div.dataset.bookTitle;
-        if(!title) return;
-        const ph=div.querySelector('img.logo-ph, span.book-emoji');
-        if(!ph) return;
-        fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-        .then(r=>r.json()).then(d=>{
-            const thumb=d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-            if(thumb){
-                const img=document.createElement('img');
-                img.src=thumb.replace('http:','https:');
-                img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
-                img.onerror=()=>img.remove();
-                ph.replaceWith ? ph.replaceWith(img) : ph.parentNode.insertBefore(img,ph);
-            }
-        }).catch(()=>{});
-    }
-    const divs=document.querySelectorAll('[data-book-title]');
-    divs.forEach((div,i)=>setTimeout(()=>fetchCover(div),i*150));
-})();
-</script>
-<script>
-function closeModal(){
-    const m=document.getElementById('modalPinjam');
-    if(m) m.classList.remove('show');
-}
-document.addEventListener('DOMContentLoaded',()=>{
-    const m=document.getElementById('modalPinjam');
-    if(!m) return;
-    m.addEventListener('click', (ev)=>{ if(ev.target===m) closeModal(); });
-});
-</script>
 </body>
 </html>

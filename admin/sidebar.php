@@ -3,7 +3,7 @@
 :root{--dark:#0d1520;--sidebar:#111d2e;--card:#152135;--accent:#e8b86d;--gold2:#f5d49a;--green:#3aab6e;--red:#e85d5d;--blue:#4a9eff;--purple:#a78bfa;--text:#cdd8e8;--muted:#637a96;--border:rgba(255,255,255,0.07);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);}
-.sidebar{width:230px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;}
+.sidebar{width:230px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;overflow-y:auto;}
 .sb-brand{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .sb-brand .ico{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--gold2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
 .sb-brand .nm{font-family:'Playfair Display',serif;color:var(--accent);font-size:.9rem;line-height:1.1;}
@@ -78,7 +78,7 @@ $_saran_cnt = (int)($conn->query("SELECT COUNT(*) c FROM saran_buku WHERE status
 ?>
 <aside class="sidebar">
     <div class="sb-brand">
-        <div class="ico"><img src="../img/logo-wandek.png" alt="" style="width:30px;"></div>
+        <div class="ico"><img src="../img/logo-onedek.png" alt="" style="width:30px;"></div>
         <div><div class="nm">E-Library</div><div class="sm">SMKN 1 Depok</div></div>
     </div>
     <div class="sb-role-chip">
@@ -87,12 +87,7 @@ $_saran_cnt = (int)($conn->query("SELECT COUNT(*) c FROM saran_buku WHERE status
     </div>
     <nav class="sb-nav">
         <div class="sb-lbl">Utama</div>
-        <?php if($_sb_isPust): ?>
-        <a href="dashboard.php" <?= in_array($_sb_page,['dashboard.php'])&&$_sb_isPust?'class="active"':'' ?>><i class="bi bi-grid-1x2"></i> Dashboard</a>
-        <?php endif; ?>
-        <?php if($_sb_isKep): ?>
-        <a href="dashboard-kepala.php" <?= $_sb_page==='dashboard-kepala.php'?'class="active"':'' ?>><i class="bi bi-grid-1x2"></i> Dashboard</a>
-        <?php endif; ?>
+        <a href="dashboard.php" <?= $_sb_page==='dashboard.php'?'class="active"':'' ?>><i class="bi bi-grid-1x2"></i> Dashboard</a>
 
         <?php if($_sb_isPust): ?>
         <div class="sb-lbl">Koleksi</div>
@@ -105,18 +100,28 @@ $_saran_cnt = (int)($conn->query("SELECT COUNT(*) c FROM saran_buku WHERE status
             <?php if($_req_cnt>0): ?><span class="sb-badge"><?= $_req_cnt ?></span><?php endif; ?>
         </a>
         <a href="pengembalian.php" <?= $_sb_page==='pengembalian.php'?'class="active"':'' ?>><i class="bi bi-arrow-bar-left"></i> Pengembalian</a>
+
+        <div class="sb-lbl">Laporan</div>
+        <a href="laporan.php" <?= $_sb_page==='laporan.php'?'class="active"':'' ?>><i class="bi bi-bar-chart-line"></i> Laporan</a>
+        <a href="saran-buku.php" <?= $_sb_page==='saran-buku.php'?'class="active"':'' ?>>
+            <i class="bi bi-lightbulb"></i> Saran Buku
+            <?php if($_saran_cnt>0): ?><span class="sb-badge"><?= $_saran_cnt ?></span><?php endif; ?>
+        </a>
         <?php endif; ?>
 
         <?php if($_sb_isKep): ?>
+        <div class="sb-lbl">Data (Hanya Lihat)</div>
+        <a href="buku-readonly.php" <?= $_sb_page==='buku-readonly.php'?'class="active"':'' ?>><i class="bi bi-book"></i> Koleksi Buku</a>
+        <a href="users-readonly.php" <?= $_sb_page==='users-readonly.php'?'class="active"':'' ?>><i class="bi bi-people"></i> Data User</a>
+        <a href="peminjaman.php" <?= $_sb_page==='peminjaman.php'?'class="active"':'' ?>><i class="bi bi-arrow-bar-right"></i> Data Peminjaman</a>
+        <a href="pengembalian.php" <?= $_sb_page==='pengembalian.php'?'class="active"':'' ?>><i class="bi bi-arrow-bar-left"></i> Data Pengembalian</a>
+
         <div class="sb-lbl">Khusus Kepala</div>
         <a href="laporan.php" <?= $_sb_page==='laporan.php'?'class="active"':'' ?>><i class="bi bi-bar-chart-line"></i> Laporan & Statistik</a>
         <a href="saran-buku.php" <?= $_sb_page==='saran-buku.php'?'class="active"':'' ?>>
             <i class="bi bi-lightbulb"></i> Saran Buku
             <?php if($_saran_cnt>0): ?><span class="sb-badge"><?= $_saran_cnt ?></span><?php endif; ?>
         </a>
-        <div class="sb-lbl">Data (Hanya Lihat)</div>
-        <a href="peminjaman.php" <?= $_sb_page==='peminjaman.php'?'class="active"':'' ?>><i class="bi bi-arrow-bar-right"></i> Data Peminjaman</a>
-        <a href="pengembalian.php" <?= $_sb_page==='pengembalian.php'?'class="active"':'' ?>><i class="bi bi-arrow-bar-left"></i> Data Pengembalian</a>
         <?php endif; ?>
 
         <div class="sb-lbl">Navigasi</div>

@@ -74,7 +74,7 @@ while ($r=$rq->fetch_assoc()) $req_ids[] = $r['id_buku'];
 $pj = $conn->query("SELECT id_buku FROM peminjaman WHERE id_user=$id_user AND status='Tidak Ada'");
 while ($r=$pj->fetch_assoc()) $pj_ids[] = $r['id_buku'];
 
-$cm_map = ['umum'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-umum'],'motivasi'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-motivasi'],'sastra'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-sastra'],'religi'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-religi']];
+$cm_map = ['umum'=>['emoji'=>'📖','class'=>'c-umum'],'motivasi'=>['emoji'=>'🚀','class'=>'c-motivasi'],'sastra'=>['emoji'=>'✍️','class'=>'c-sastra'],'religi'=>['emoji'=>'🕌','class'=>'c-religi']];
 ?><!DOCTYPE html>
 <html lang="id">
 <head>
@@ -196,11 +196,11 @@ $cm_map = ['umum'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width
 <?php if($requests && $requests->num_rows > 0): ?>
 <?php while($r=$requests->fetch_assoc()):
     $kk = strtolower($r['kategori']);
-    $cm = $cm_map[$kk] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+    $cm = $cm_map[$kk] ?? ['emoji'=>'📚','class'=>'c-default'];
     $isAktif = ($r['status']==='disetujui') && $conn->query("SELECT id_pinjam FROM peminjaman WHERE id_user=$id_user AND id_buku={$r['id_buku']} AND status='Tidak Ada'")->num_rows > 0;
 ?>
 <div class="req-card">
-    <div class="req-cover <?= $cm['class'] ?>" data-book-title="<?= htmlspecialchars($b['nama_buku'] ?? '') ?>">
+    <div class="req-cover <?= $cm['class'] ?>">
         <?php if(!empty($r['gambar'])&&file_exists('img/buku/'.$r['gambar'])): ?><img src="img/buku/<?= htmlspecialchars($r['gambar']) ?>" alt=""><?php else: ?><?= $cm['emoji'] ?><?php endif; ?>
     </div>
     <div style="flex:1;min-width:0;">
@@ -230,12 +230,12 @@ $cm_map = ['umum'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width
 <div class="sec-hdr"><div><div class="sec-label-sm">Sedang Dipinjam</div><h2 class="sec-title-sm">Buku Aktif</h2></div></div>
 <?php while($r=$aktif->fetch_assoc()):
     $kk = strtolower($r['kategori']);
-    $cm = $cm_map[$kk] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+    $cm = $cm_map[$kk] ?? ['emoji'=>'📚','class'=>'c-default'];
     $terlambat = strtotime(date('Y-m-d')) > strtotime($r['batas_kembali']);
     $sisa = ceil((strtotime($r['batas_kembali']) - strtotime(date('Y-m-d'))) / 86400);
 ?>
 <div class="aktif-card <?= $terlambat?'terlambat':'' ?>">
-    <div class="aktif-cover <?= $cm['class'] ?>" data-book-title="<?= htmlspecialchars($b['nama_buku'] ?? '') ?>">
+    <div class="aktif-cover <?= $cm['class'] ?>">
         <?php if(!empty($r['gambar'])&&file_exists('img/buku/'.$r['gambar'])): ?><img src="img/buku/<?= htmlspecialchars($r['gambar']) ?>" alt=""><?php else: ?><?= $cm['emoji'] ?><?php endif; ?>
     </div>
     <div style="flex:1;min-width:0;">
@@ -279,12 +279,12 @@ $cm_map = ['umum'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width
 <div class="buku-grid">
 <?php while($b=$buku_list->fetch_assoc()):
     $kk = strtolower($b['kategori']);
-    $cm = $cm_map[$kk] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+    $cm = $cm_map[$kk] ?? ['emoji'=>'📚','class'=>'c-default'];
     $isReq   = in_array($b['id_buku'],$req_ids);
     $isPinjam = in_array($b['id_buku'],$pj_ids);
 ?>
 <div class="buku-pm">
-    <div class="pm-cover <?= $cm['class'] ?>" data-book-title="<?= htmlspecialchars($b['nama_buku'] ?? '') ?>">
+    <div class="pm-cover <?= $cm['class'] ?>">
         <?php if(!empty($b['gambar'])&&file_exists('img/buku/'.$b['gambar'])): ?><img src="img/buku/<?= htmlspecialchars($b['gambar']) ?>" alt=""><?php else: ?><?= $cm['emoji'] ?><?php endif; ?>
         <span class="<?= $b['stock']>0?'stk-ada':'stk-habis' ?>"><?= $b['stock']>0?'Stok:'.$b['stock']:'Habis' ?></span>
     </div>
@@ -331,7 +331,7 @@ $cm_map = ['umum'=>['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width
 </div>
 
 <footer class="site-footer"><div class="container"><div class="footer-inner">
-    <div class="footer-brand"><img src="img/logo-wandek.png" alt="" style="width:28px;vertical-align:middle;"> E-Library SMKN 1 Depok</div>
+    <div class="footer-brand">📚 E-Library SMKN 1 Depok</div>
     <div class="footer-copy">&copy; <?= date('Y') ?> E-Library. All Rights Reserved.</div>
     <div class="footer-links"><a href="riwayat-peminjaman.php">Riwayat</a><a href="saran-buku.php">Saran Buku</a></div>
 </div></div></footer>
@@ -345,30 +345,5 @@ function bukaModal(id,nama){
 }
 function tutupModal(){document.getElementById('modalCatatan').classList.remove('show');}
 document.getElementById('modalCatatan').addEventListener('click',function(e){if(e.target===this)tutupModal();});
-</script>
-
-<script>
-// Google Books cover fetcher
-(function(){
-    function fetchCover(div){
-        const title=div.dataset.bookTitle;
-        if(!title) return;
-        const ph=div.querySelector('img.logo-ph, span.book-emoji');
-        if(!ph) return;
-        fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-        .then(r=>r.json()).then(d=>{
-            const thumb=d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-            if(thumb){
-                const img=document.createElement('img');
-                img.src=thumb.replace('http:','https:');
-                img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
-                img.onerror=()=>img.remove();
-                ph.replaceWith ? ph.replaceWith(img) : ph.parentNode.insertBefore(img,ph);
-            }
-        }).catch(()=>{});
-    }
-    const divs=document.querySelectorAll('[data-book-title]');
-    divs.forEach((div,i)=>setTimeout(()=>fetchCover(div),i*150));
-})();
 </script>
 </body></html>

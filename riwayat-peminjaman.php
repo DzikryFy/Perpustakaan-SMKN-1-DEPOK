@@ -126,10 +126,10 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
     <!-- List -->
     <?php
     $cover_map = [
-        'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-umum'],
-        'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-motivasi'],
-        'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-sastra'],
-        'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-religi'],
+        'umum'     => ['emoji'=>'📖','class'=>'c-umum'],
+        'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi'],
+        'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra'],
+        'religi'   => ['emoji'=>'🕌','class'=>'c-religi'],
     ];
     if ($list && $list->num_rows > 0):
     ?>
@@ -137,12 +137,11 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
         <?php while ($r = $list->fetch_assoc()):
             // Cek apakah sudah ada pengembalian
             $sudahKembali = $conn->query("SELECT id_pengembalian FROM pengembalian WHERE id_pinjam={$r['id_pinjam']}")->num_rows > 0;
-            $reqKembali   = $conn->query("SELECT status FROM request_pengembalian WHERE id_pinjam={$r['id_pinjam']} ORDER BY id_req_kembali DESC LIMIT 1")->fetch_assoc();
             $katKey = strtolower($r['kategori'] ?? '');
             // Ambil kategori dari tabel buku
             $bukuRow = $conn->query("SELECT kategori FROM buku WHERE id_buku={$r['id_buku']}")->fetch_assoc();
             $katKey  = strtolower($bukuRow['kategori'] ?? '');
-            $cm      = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+            $cm      = $cover_map[$katKey] ?? ['emoji'=>'📚','class'=>'c-default'];
         ?>
         <div class="pinjam-card">
             <div class="buku-cover <?= $cm['class'] ?> pinjam-cover"><?= $cm['emoji'] ?></div>
@@ -157,7 +156,7 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
                 <?php if ($r['status'] === 'Tidak Ada'): ?>
                     <span class="badge-dipinjam"><i class="bi bi-clock me-1"></i>Dipinjam</span>
                     <?php if (!$sudahKembali): ?>
-                    <a href="form-pengembalian.php" class="btn-kembalikan">
+                    <a href="form-pengembalian.php?pinjam=<?= $r['id_pinjam'] ?>" class="btn-kembalikan">
                         <i class="bi bi-arrow-bar-left me-1"></i>Kembalikan
                     </a>
                     <?php else: ?>
@@ -185,7 +184,7 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
 <footer class="site-footer">
     <div class="container">
         <div class="footer-inner">
-            <div class="footer-brand"><span class="footer-icon"><img src="img/logo-wandek.png" alt="" style="width:44px;opacity:.75;position:relative;z-index:1;"></span> E-Library SMKN 1 Depok</div>
+            <div class="footer-brand"><span class="footer-icon">📚</span> E-Library SMKN 1 Depok</div>
             <div class="footer-copy">&copy; <?= date('Y') ?> E-Library Project. All Rights Reserved.</div>
             <div class="footer-links"><a href="logout.php">Keluar</a></div>
         </div>
@@ -193,30 +192,5 @@ $total_kembali  = $conn->query("SELECT COUNT(*) AS c FROM peminjaman WHERE id_us
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30);});</script>
-
-<script>
-// Google Books cover fetcher
-(function(){
-    function fetchCover(div){
-        const title=div.dataset.bookTitle;
-        if(!title) return;
-        const ph=div.querySelector('img.logo-ph, span.book-emoji');
-        if(!ph) return;
-        fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-        .then(r=>r.json()).then(d=>{
-            const thumb=d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-            if(thumb){
-                const img=document.createElement('img');
-                img.src=thumb.replace('http:','https:');
-                img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
-                img.onerror=()=>img.remove();
-                ph.replaceWith ? ph.replaceWith(img) : ph.parentNode.insertBefore(img,ph);
-            }
-        }).catch(()=>{});
-    }
-    const divs=document.querySelectorAll('[data-book-title]');
-    divs.forEach((div,i)=>setTimeout(()=>fetchCover(div),i*150));
-})();
-</script>
 </body>
 </html>

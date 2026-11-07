@@ -18,6 +18,7 @@ function getRole()       { return $_SESSION['role'] ?? ''; }
 function isPustakawan()  { return getRole() === 'pustakawan'; }
 function isKepala()      { return getRole() === 'kepala_perpustakaan'; }
 function isStaff()       { return isPustakawan() || isKepala(); }
+function isAdmin()       { return isStaff(); }
 function canBorrow()     { $r=getRole(); return in_array($r,['siswa','guru','pustakawan']); }
 function canCRUD()       { return isPustakawan(); }
 
@@ -33,11 +34,7 @@ function requireStaff() {       // pustakawan ATAU kepala
 }
 function requirePustakawan() {  // hanya pustakawan
     requireLogin('../login.php');
-    if (!isPustakawan()) redirect('dashboard-kepala.php');
-}
-function requireKepala() {      // hanya kepala perpustakaan
-    requireLogin('../login.php');
-    if (!isKepala()) redirect('dashboard-kepala.php?err=akses');
+    if (!isPustakawan()) redirect('dashboard.php?err=akses');
 }
 
 // ── Helper: sanitize ─────────────────────────────────────────
@@ -76,13 +73,13 @@ function roleLabel($role): string {
 // ── Helper: gambar buku ───────────────────────────────────────
 function coverBuku(?string $gambar, string $kategori, string $size='card'): string {
     $map = [
-        'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','gradient'=>'135deg,#1f0d2d,#3d1a5a'],
-        'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','gradient'=>'135deg,#2d1f00,#5a3c00'],
-        'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','gradient'=>'135deg,#0d2d1a,#1a5a3c'],
-        'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','gradient'=>'135deg,#0d2540,#1a3d60'],
+        'sastra'   => ['emoji'=>'✍️','gradient'=>'135deg,#1f0d2d,#3d1a5a'],
+        'motivasi' => ['emoji'=>'🚀','gradient'=>'135deg,#2d1f00,#5a3c00'],
+        'religi'   => ['emoji'=>'🕌','gradient'=>'135deg,#0d2d1a,#1a5a3c'],
+        'umum'     => ['emoji'=>'📖','gradient'=>'135deg,#0d2540,#1a3d60'],
     ];
     $k  = strtolower($kategori);
-    $cm = $map[$k] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;">','gradient'=>'135deg,#1a1f2d,#2d3a4a'];
+    $cm = $map[$k] ?? ['emoji'=>'📚','gradient'=>'135deg,#1a1f2d,#2d3a4a'];
 
     if (!empty($gambar) && file_exists(__DIR__.'/../img/buku/'.$gambar)) {
         $path = ($size==='admin' ? '../' : '') . 'img/buku/'.htmlspecialchars($gambar);

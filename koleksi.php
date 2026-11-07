@@ -206,25 +206,22 @@ $total_buku = array_sum($kat_counts);
     <!-- Grid Buku -->
     <?php
     $cover_map = [
-        'umum'     => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-umum'],
-        'motivasi' => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-motivasi'],
-        'sastra'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-sastra'],
-        'religi'   => ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-religi'],
+        'umum'     => ['emoji'=>'📖','class'=>'c-umum'],
+        'motivasi' => ['emoji'=>'🚀','class'=>'c-motivasi'],
+        'sastra'   => ['emoji'=>'✍️','class'=>'c-sastra'],
+        'religi'   => ['emoji'=>'🕌','class'=>'c-religi'],
     ];
     if ($buku_list->num_rows > 0):
     ?>
     <div class="buku-grid">
         <?php while ($b = $buku_list->fetch_assoc()):
             $katKey = strtolower($b['kategori']);
-            $cm     = $cover_map[$katKey] ?? ['emoji'=>'<img src="img/logo-wandek.png" alt="" style="width:42px;opacity:.8;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));">','class'=>'c-default'];
+            $cm     = $cover_map[$katKey] ?? ['emoji'=>'📚','class'=>'c-default'];
         ?>
         <div class="buku-card">
-            <div class="buku-cover <?= $cm['class'] ?>" data-book-title="<?= htmlspecialchars($b['nama_buku'] ?? '') ?>">
-                <?php
-                    $imgName = basename($b['gambar'] ?? '');
-                    if ($imgName && file_exists('img/buku/'.$imgName)):
-                ?>
-                    <img src="img/buku/<?= htmlspecialchars($imgName) ?>" alt="<?= htmlspecialchars($b['nama_buku']) ?>">
+            <div class="buku-cover <?= $cm['class'] ?>">
+                <?php if (!empty($b['gambar']) && file_exists('img/buku/'.$b['gambar'])): ?>
+                    <img src="img/buku/<?= htmlspecialchars($b['gambar']) ?>" alt="<?= htmlspecialchars($b['nama_buku']) ?>">
                 <?php else: ?>
                     <?= $cm['emoji'] ?>
                 <?php endif; ?>
@@ -266,7 +263,7 @@ $total_buku = array_sum($kat_counts);
 <footer class="site-footer" style="margin-top:0">
     <div class="container">
         <div class="footer-inner">
-            <div class="footer-brand"><span class="footer-icon"><img src="img/logo-wandek.png" alt="" style="width:44px;opacity:.75;position:relative;z-index:1;"></span> E-Library SMKN 1 Depok</div>
+            <div class="footer-brand"><span class="footer-icon"><img src="img/logo-onedek.png" alt="" style="width: 30px;"></span> E-Library SMKN 1 Depok</div>
             <div class="footer-copy">&copy; <?= date('Y') ?> E-Library Project. All Rights Reserved.</div>
             <div class="footer-links">
                 <?php if ($loggedIn): ?>
@@ -281,31 +278,6 @@ $total_buku = array_sum($kat_counts);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30);});
-</script>
-
-<script>
-// Google Books cover fetcher
-(function(){
-    function fetchCover(div){
-        const title=div.dataset.bookTitle;
-        if(!title) return;
-        const ph=div.querySelector('img.logo-ph, span.book-emoji');
-        if(!ph) return;
-        fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(title)+'&maxResults=1')
-        .then(r=>r.json()).then(d=>{
-            const thumb=d.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-            if(thumb){
-                const img=document.createElement('img');
-                img.src=thumb.replace('http:','https:');
-                img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
-                img.onerror=()=>img.remove();
-                ph.replaceWith ? ph.replaceWith(img) : ph.parentNode.insertBefore(img,ph);
-            }
-        }).catch(()=>{});
-    }
-    const divs=document.querySelectorAll('[data-book-title]');
-    divs.forEach((div,i)=>setTimeout(()=>fetchCover(div),i*150));
-})();
 </script>
 </body>
 </html>

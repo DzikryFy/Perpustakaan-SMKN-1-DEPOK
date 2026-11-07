@@ -1,9 +1,9 @@
 <?php
 session_start();
 require_once '../config/database.php';
-requireKepala(); // hanya kepala perpustakaan
+requireStaff();
 $base='../'; $loggedIn=true; $namaUser=$_SESSION['nama']??''; $roleUser=$_SESSION['role']??'';
-$msg=$error=''; $canEdit=isKepala(); // kepala menyetujui saran
+$msg=$error=''; $canEdit=isPustakawan();
 
 if($canEdit && isset($_GET['status']) && isset($_GET['id'])){
     $sid=(int)$_GET['id']; $st=in_array($_GET['status'],['ditinjau','disetujui','ditolak'])?$_GET['status']:'';
