@@ -237,11 +237,11 @@
                     <ul class="space-y-2 text-xs text-slate-600">
                         <li class="flex justify-between pb-1.5 border-b border-slate-100">
                             <span class="font-medium">Senin - Kamis</span>
-                            <span class="text-slate-800 font-semibold">07.00 - 16.00 WIB</span>
+                            <span class="text-slate-800 font-semibold">07.00 - 14.00 WIB</span>
                         </li>
                         <li class="flex justify-between pb-1.5 border-b border-slate-100">
                             <span class="font-medium">Jumat</span>
-                            <span class="text-slate-800 font-semibold">07.00 - 15.30 WIB</span>
+                            <span class="text-slate-800 font-semibold">07.00 - 11.00 WIB</span>
                         </li>
                         <li class="flex justify-between">
                             <span class="font-medium">Sabtu - Minggu</span>
