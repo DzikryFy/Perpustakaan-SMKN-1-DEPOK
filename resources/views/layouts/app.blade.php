@@ -37,23 +37,23 @@
                 <!-- Desktop Navigation Links -->
                 <nav class="hidden md:flex items-center gap-1 font-medium text-sm text-slate-600">
                     <a href="{{ route('home') }}" class="px-3.5 py-2 rounded-lg transition-colors {{ request()->routeIs('home') ? 'text-blue-700 bg-blue-50 font-semibold' : 'hover:text-blue-700 hover:bg-slate-100' }}">
-                        <i class="bi bi-house-door me-1.5 text-base"></i>Beranda
+                        Beranda
                     </a>
                     <a href="{{ route('catalog.index') }}" class="px-3.5 py-2 rounded-lg transition-colors {{ request()->routeIs('catalog.*') ? 'text-blue-700 bg-blue-50 font-semibold' : 'hover:text-blue-700 hover:bg-slate-100' }}">
-                        <i class="bi bi-book me-1.5 text-base"></i>Koleksi Buku
+                        Koleksi Buku
                     </a>
                     <a href="{{ route('home') }}#fasilitas" class="px-3.5 py-2 rounded-lg transition-colors hover:text-blue-700 hover:bg-slate-100">
-                        <i class="bi bi-building me-1.5 text-base"></i>Fasilitas
+                        Fasilitas
                     </a>
                     <a href="{{ route('home') }}#tata-tertib" class="px-3.5 py-2 rounded-lg transition-colors hover:text-blue-700 hover:bg-slate-100">
-                        <i class="bi bi-file-earmark-ruled me-1.5 text-base"></i>Tata Tertib
+                        Tata Tertib
                     </a>
                     @auth
                     <a href="{{ route('member.loans') }}" class="px-3.5 py-2 rounded-lg transition-colors {{ request()->routeIs('member.loans') ? 'text-blue-700 bg-blue-50 font-semibold' : 'hover:text-blue-700 hover:bg-slate-100' }}">
-                        <i class="bi bi-journal-bookmark me-1.5 text-base"></i>Pinjaman Saya
+                        Pinjaman Saya
                     </a>
                     <a href="{{ route('member.suggestions') }}" class="px-3.5 py-2 rounded-lg transition-colors {{ request()->routeIs('member.suggestions') ? 'text-blue-700 bg-blue-50 font-semibold' : 'hover:text-blue-700 hover:bg-slate-100' }}">
-                        <i class="bi bi-lightbulb me-1.5 text-base"></i>Saran Buku
+                        Saran Buku
                     </a>
                     @endauth
                 </nav>
@@ -130,16 +130,16 @@
             <!-- Mobile Navigation Drawer -->
             <div x-show="mobileMenuOpen" x-transition class="md:hidden border-t border-slate-200 py-3 space-y-1">
                 <a href="{{ route('home') }}" class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('home') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50' }}">
-                    <i class="bi bi-house-door me-2"></i>Beranda
+                    Beranda
                 </a>
                 <a href="{{ route('catalog.index') }}" class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('catalog.*') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50' }}">
-                    <i class="bi bi-book me-2"></i>Koleksi Buku
+                    Koleksi Buku
                 </a>
                 <a href="{{ route('home') }}#fasilitas" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-                    <i class="bi bi-building me-2"></i>Fasilitas
+                    Fasilitas
                 </a>
                 <a href="{{ route('home') }}#tata-tertib" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-                    <i class="bi bi-file-earmark-ruled me-2"></i>Tata Tertib
+                    Tata Tertib
                 </a>
 
                 @auth
