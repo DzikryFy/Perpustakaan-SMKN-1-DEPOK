@@ -27,10 +27,10 @@
                 <a href="{{ route('home') }}" class="flex items-center gap-3 group">
                     <img src="{{ asset('images/logo-onedek.png') }}" alt="Logo SMKN 1 Depok" class="h-10 w-auto object-contain transition-transform group-hover:scale-105">
                     <div>
-                        <div class="font-bold text-base text-blue-900 tracking-tight leading-tight flex items-center gap-1.5">
-                            E-Library <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200">SMKN 1 DEPOK</span>
+                        <div class="font-bold text-base text-slate-900 tracking-tight leading-tight">
+                            Perpustakaan <span class="text-blue-700">SMKN 1 Depok</span>
                         </div>
-                        <p class="text-xs text-slate-500 font-medium">Perpustakaan Digital Terpadu</p>
+                        <p class="text-xs text-slate-500 font-medium">Digital Library & Knowledge Center</p>
                     </div>
                 </a>
 

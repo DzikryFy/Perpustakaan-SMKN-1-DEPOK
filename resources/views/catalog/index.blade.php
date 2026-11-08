@@ -7,27 +7,24 @@
     
     <!-- Page Header -->
     <div class="mb-8">
-        <div class="text-xs font-bold uppercase tracking-wider text-blue-600">Katalog Pustaka</div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">Eksplorasi Koleksi Buku</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">Cari dan pinjam buku referensi, materi kejuruan, serta literatur umum SMKN 1 Depok</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Katalog Pustaka</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">Eksplorasi Koleksi Buku</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Cari dan pinjam buku referensi kurikulum, materi kejuruan, serta literatur umum SMKN 1 Depok</p>
     </div>
 
     <!-- Search & Filter Controls -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs mb-8">
+    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 mb-8">
         <form method="GET" action="{{ route('catalog.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
             
             <!-- Search Text -->
             <div class="md:col-span-6 relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <i class="bi bi-search"></i>
-                </div>
                 <input type="text" name="q" value="{{ $search }}" placeholder="Cari judul, pengarang, penerbit, nomor BOS..."
-                    class="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
+                    class="w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-300 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
             </div>
 
             <!-- Category Select -->
             <div class="md:col-span-3">
-                <select name="kategori" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
+                <select name="kategori" class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
                     <option value="">Semua Kategori</option>
                     @foreach($categories as $cat)
                     <option value="{{ $cat }}" {{ $category === $cat ? 'selected' : '' }}>{{ $cat }}</option>
@@ -35,13 +32,13 @@
                 </select>
             </div>
 
-            <!-- Filter Buttons & Available Only -->
+            <!-- Filter Buttons & Reset -->
             <div class="md:col-span-3 flex items-center gap-2">
-                <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition">
+                <button type="submit" class="flex-1 py-2.5 px-4 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition">
                     Terapkan
                 </button>
                 @if($search || $category || $availableOnly)
-                <a href="{{ route('catalog.index') }}" class="py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+                <a href="{{ route('catalog.index') }}" class="py-2.5 px-3.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
                     Reset
                 </a>
                 @endif
@@ -57,65 +54,73 @@
         </form>
     </div>
 
-    <!-- Category Tabs -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 text-xs font-semibold">
+    <!-- Category Tabs (Clean Text Chips) -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 text-xs font-medium">
         <a href="{{ route('catalog.index', array_merge(request()->except('kategori', 'page'))) }}"
-           class="px-3.5 py-1.5 rounded-full border transition whitespace-nowrap {{ !$category ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300' }}">
+           class="px-3.5 py-1.5 rounded-lg border transition whitespace-nowrap {{ !$category ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300' }}">
             Semua ({{ \App\Models\Book::count() }})
         </a>
         @foreach($categories as $cat)
         <a href="{{ route('catalog.index', array_merge(request()->except('kategori', 'page'), ['kategori' => $cat])) }}"
-           class="px-3.5 py-1.5 rounded-full border transition whitespace-nowrap {{ $category === $cat ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300' }}">
+           class="px-3.5 py-1.5 rounded-lg border transition whitespace-nowrap {{ $category === $cat ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300' }}">
             {{ $cat }} ({{ $categoryCounts[$cat] ?? 0 }})
         </a>
         @endforeach
     </div>
 
-    <!-- Books Grid -->
+    <!-- Books Grid (Editorial Physical Style ala Malaka Books) -->
     @if($books->count() > 0)
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
         @foreach($books as $b)
-        <div class="group bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs hover:shadow-md hover:border-blue-200 transition-all flex flex-col">
+        <div class="group bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-xs transition flex flex-col justify-between overflow-hidden">
             
             <!-- Book Cover -->
-            <div class="h-48 bg-gradient-to-br from-slate-100 to-slate-200 relative flex items-center justify-center overflow-hidden p-4">
+            <a href="{{ route('catalog.show', $b) }}" class="block aspect-3/4 bg-slate-800 text-white p-4 relative overflow-hidden border-l-4 border-slate-700">
                 @if($b->cover_url)
-                    <img src="{{ $b->cover_url }}" alt="{{ $b->judul }}" class="h-full w-auto object-cover rounded-md shadow-md group-hover:scale-105 transition-transform duration-300">
+                    <img src="{{ $b->cover_url }}" alt="{{ $b->judul }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-102 transition duration-300">
                 @else
-                    <div class="text-center p-3">
-                        <div class="text-4xl mb-1 opacity-70">📖</div>
-                        <div class="text-xs font-bold text-slate-800 line-clamp-2">{{ $b->judul }}</div>
-                        <div class="text-[10px] text-slate-500 mt-1">{{ $b->penerbit ?? 'Kemdikbud' }}</div>
+                    <div class="h-full flex flex-col justify-between">
+                        <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                            {{ $b->kategori }}
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-slate-100 leading-snug line-clamp-3">
+                                {{ $b->judul }}
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-1 line-clamp-1">
+                                {{ $b->penerbit ?? 'Pustaka Sekolah' }}
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500 font-mono">
+                            {{ $b->no_bos ? 'BOS #' . $b->no_bos : 'Koleksi Umum' }}
+                        </div>
                     </div>
                 @endif
-                
-                <!-- Stock Pill -->
-                <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-2xs {{ $b->stok > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200' }}">
-                    {{ $b->stok > 0 ? 'Tersedia (' . $b->stok . ')' : 'Stok Habis' }}
-                </span>
-            </div>
+            </a>
 
             <!-- Book Info Body -->
-            <div class="p-4 flex-1 flex flex-col justify-between">
+            <div class="p-3.5 flex-1 flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">
+                    <div class="flex items-center justify-between text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">
                         <span>{{ $b->kategori }}</span>
                         @if($b->no_bos)
-                        <span class="text-slate-400 font-mono">BOS: #{{ $b->no_bos }}</span>
+                        <span class="font-mono text-slate-500">#{{ $b->no_bos }}</span>
                         @endif
                     </div>
-                    <h3 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 line-clamp-2 transition-colors">
+                    <h3 class="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 mt-0.5 group-hover:text-blue-700 transition" title="{{ $b->judul }}">
                         <a href="{{ route('catalog.show', $b) }}">{{ $b->judul }}</a>
                     </h3>
-                    <p class="text-xs text-slate-500 mt-1 line-clamp-1">
-                        Penerbit: {{ $b->penerbit ?? 'Kemdikbud/Pemerintah' }}
+                    <p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                        {{ $b->penerbit ?? 'Kemdikbud' }}
                     </p>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span class="text-[11px] text-slate-400">Tahun: {{ $b->tahun_cetak ?? '-' }}</span>
-                    <a href="{{ route('catalog.show', $b) }}" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
-                        Detail <i class="bi bi-chevron-right text-[10px]"></i>
+                <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                    <span class="{{ $b->stok > 0 ? 'text-emerald-700 font-medium' : 'text-slate-400' }}">
+                        {{ $b->stok > 0 ? 'Stok: ' . $b->stok : 'Habis' }}
+                    </span>
+                    <a href="{{ route('catalog.show', $b) }}" class="font-semibold text-blue-700 hover:text-blue-900 transition">
+                        Detail →
                     </a>
                 </div>
             </div>
@@ -128,13 +133,10 @@
         {{ $books->links() }}
     </div>
     @else
-    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-md mx-auto">
-        <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl mb-4">
-            <i class="bi bi-book"></i>
-        </div>
-        <h3 class="font-bold text-slate-800 text-base">Tidak ada buku ditemukan</h3>
+    <div class="bg-white rounded-xl border border-slate-200 p-12 text-center max-w-md mx-auto">
+        <h3 class="font-bold text-slate-800 text-base">Tidak ada koleksi buku yang cocok</h3>
         <p class="text-xs text-slate-500 mt-1">Coba gunakan kata kunci pencarian lain atau pilih kategori yang berbeda.</p>
-        <a href="{{ route('catalog.index') }}" class="mt-4 inline-block px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition">
+        <a href="{{ route('catalog.index') }}" class="mt-4 inline-block px-4 py-2 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition">
             Lihat Semua Koleksi
         </a>
     </div>
