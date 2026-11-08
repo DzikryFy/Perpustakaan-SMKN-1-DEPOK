@@ -72,7 +72,7 @@
                     <span>Sirkulasi & Pinjaman</span>
                 </div>
                 @if($pendingRequestsCount > 0)
-                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white animate-pulse">
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-600 text-white">
                     {{ $pendingRequestsCount }}
                 </span>
                 @endif
